@@ -1,0 +1,36 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    // Helper Functions
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+    
+    function isOwner(userId) {
+      return isAuthenticated() && request.auth.uid == userId;
+    }
+
+    function isValidUserProfile(data) {
+      return data.keys().hasAll(['uid', 'university', 'major', 'vibe']) &&
+             data.uid == request.auth.uid &&
+             data.university is string && data.university.size() > 0 &&
+             data.major is string && data.major.size() > 0 &&
+             data.vibe in ['Strict', 'Local/Slang'];
+    }
+
+    match /users/{userId} {
+      allow read: if isOwner(userId);
+      allow create: if isOwner(userId) && isValidUserProfile(request.resource.data);
+      allow update: if isOwner(userId) && isValidUserProfile(request.resource.data);
+      
+      match /sessions/{sessionId} {
+        allow read, write: if isOwner(userId);
+        
+        match /messages/{messageId} {
+          allow read, write: if isOwner(userId);
+        }
+      }
+    }
+  }
+}

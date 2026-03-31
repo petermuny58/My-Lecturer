@@ -1,0 +1,115 @@
+.pdf-upload {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.pdf-upload-loaded {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.75rem;
+  background: #fff7ed;
+  border: 1px solid #ffedd5;
+  border-radius: 0.75rem;
+}
+
+.pdf-upload-icon {
+  padding: 0.5rem;
+  background: #f97316;
+  color: #fff;
+  border-radius: 0.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.pdf-upload-icon svg.pdf-spin {
+  animation: pdf-spin 0.9s linear infinite;
+}
+
+@keyframes pdf-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.pdf-upload-meta {
+  flex: 1;
+  min-width: 0;
+}
+
+.pdf-upload-meta p {
+  margin: 0;
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: #9a3412;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.pdf-upload-meta span {
+  font-size: 0.75rem;
+  color: #ea580c;
+}
+
+.pdf-upload-remove {
+  padding: 0.25rem;
+  border: none;
+  background: none;
+  color: #fb923c;
+}
+
+.pdf-upload-remove:hover {
+  color: #ea580c;
+}
+
+.pdf-upload-zone {
+  border: 2px dashed #e5e7eb;
+  border-radius: 1rem;
+  padding: 1.5rem;
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.75rem;
+  transition: border-color 0.2s, background 0.2s;
+}
+
+.pdf-upload-zone:hover {
+  border-color: #fdba74;
+  background: #fafafa;
+}
+
+.pdf-upload-zone--active {
+  border-color: #f97316;
+  background: #fff7ed;
+}
+
+.pdf-upload-drop-icon {
+  padding: 1rem;
+  background: #ffedd5;
+  color: #ea580c;
+  border-radius: 50%;
+}
+
+.pdf-upload-zone h3 {
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 700;
+  color: #111827;
+}
+
+.pdf-upload-zone p {
+  margin: 0;
+  font-size: 0.875rem;
+  color: #6b7280;
+}
+
+.pdf-upload-error {
+  font-size: 0.75rem;
+  color: #ef4444;
+  text-align: center;
+  font-weight: 500;
+}

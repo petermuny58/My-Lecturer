@@ -1,0 +1,296 @@
+/* ══════════════════════════════
+   Auth & Loading screens
+══════════════════════════════ */
+.app-auth {
+  min-height: 100vh;
+  background: linear-gradient(145deg, #ea580c 0%, #c2410c 100%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 1.5rem;
+  color: #fff;
+}
+
+.app-auth-logo {
+  width: 6rem;
+  height: 6rem;
+  background: rgba(255, 255, 255, 0.12);
+  backdrop-filter: var(--glass-blur);
+  -webkit-backdrop-filter: var(--glass-blur);
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  border-radius: 1.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 2rem;
+  box-shadow: 0 25px 50px rgba(0, 0, 0, 0.25);
+  transform: rotate(3deg);
+}
+
+.app-auth-logo svg {
+  color: #fff;
+}
+
+.app-auth h1 {
+  font-size: clamp(2rem, 5vw, 2.5rem);
+  font-weight: 900;
+  letter-spacing: -0.03em;
+  margin: 0 0 1rem;
+}
+
+.app-auth p {
+  font-size: 1.125rem;
+  color: rgba(255, 255, 255, 0.9);
+  margin: 0 0 2rem;
+  text-align: center;
+  max-width: 22rem;
+  font-weight: 500;
+}
+
+.app-auth-error {
+  margin-bottom: 1.5rem;
+  padding: 0.75rem 1rem;
+  background: rgba(255, 255, 255, 0.15);
+  border-radius: 0.75rem;
+  font-size: 0.875rem;
+  font-weight: 500;
+  border: 1px solid rgba(255, 255, 255, 0.25);
+}
+
+.app-auth-btn {
+  width: 100%;
+  max-width: 20rem;
+  padding: 1rem 1.25rem;
+  background: rgba(255, 255, 255, 0.95);
+  color: #ea580c;
+  border: none;
+  border-radius: var(--radius-card);
+  font-weight: 700;
+  font-size: 1.125rem;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.75rem;
+  transition: background 0.2s, transform 0.15s;
+}
+
+.app-auth-btn:hover {
+  background: #fff7ed;
+  transform: translateY(-1px);
+}
+
+.app-auth-btn:active {
+  transform: scale(0.98);
+}
+
+/* Loading spinner */
+.app-loading {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--bg-charcoal);
+}
+
+.app-loading svg {
+  color: var(--accent-orange);
+  animation: app-spin 0.9s linear infinite;
+}
+
+@keyframes app-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* ══════════════════════════════
+   Main App Shell
+   Mobile:  column (content + bottom nav)
+   Desktop: row (sidebar nav + content)
+══════════════════════════════ */
+.app-shell {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  height: 100dvh;
+  background: var(--bg-charcoal);
+  color: var(--text-primary);
+  overflow: hidden;
+}
+
+.app-main {
+  flex: 1;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+
+/* ══════════════════════════════
+   Navigation — Fixed floating glass pill
+══════════════════════════════ */
+.app-nav-wrap {
+  position: fixed;
+  bottom: 20px;
+  left: 0;
+  right: 0;
+  display: flex;
+  justify-content: center;
+  padding: 0 1rem;
+  pointer-events: none;
+  z-index: 100;
+  /* Stay put even when virtual keyboard opens */
+  bottom: max(20px, calc(env(safe-area-inset-bottom) + 12px));
+}
+
+.app-nav-wrap > * {
+  pointer-events: auto;
+}
+
+.app-nav-glass {
+  display: flex;
+  align-items: center;
+  justify-content: space-around;
+  gap: 0.25rem;
+  width: 100%;
+  max-width: 400px;
+  padding: 0.6rem 1rem;
+  border-radius: 999px;
+
+  /* Glassmorphism */
+  background: rgba(20, 20, 28, 0.55);
+  backdrop-filter: blur(15px);
+  -webkit-backdrop-filter: blur(15px);
+  border: 1px solid rgba(255, 255, 255, 0.13);
+  box-shadow:
+    0 8px 32px rgba(0, 0, 0, 0.45),
+    inset 0 1px 0 rgba(255, 255, 255, 0.08);
+}
+
+.app-nav-btn {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.2rem;
+  padding: 0.5rem 0.9rem;
+  background: none;
+  border: none;
+  color: var(--text-muted);
+  border-radius: 16px;
+  transition: color 0.2s ease, background 0.2s ease, transform 0.15s ease;
+  min-width: 56px;
+  min-height: 48px;
+  justify-content: center;
+}
+
+.app-nav-btn:hover {
+  color: rgba(255, 255, 255, 0.8);
+  background: rgba(255, 255, 255, 0.06);
+}
+
+.app-nav-btn:active {
+  transform: scale(0.94);
+}
+
+.app-nav-btn--active-home {
+  color: var(--accent-orange);
+  background: rgba(255, 140, 66, 0.1);
+}
+
+.app-nav-btn--active-lecture {
+  color: #34d399;
+  background: rgba(52, 211, 153, 0.1);
+}
+
+.app-nav-btn--active-books {
+  color: #60a5fa;
+  background: rgba(96, 165, 250, 0.1);
+}
+
+.app-nav-label {
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  line-height: 1;
+}
+
+/* ══════════════════════════════
+   TABLET (640px): slightly wider nav pill
+══════════════════════════════ */
+@media (min-width: 640px) {
+  .app-nav-glass {
+    max-width: 460px;
+    padding: 0.7rem 1.5rem;
+  }
+
+  .app-nav-btn {
+    padding: 0.6rem 1.25rem;
+  }
+
+  .app-nav-label {
+    font-size: 10px;
+  }
+}
+
+/* ══════════════════════════════
+   DESKTOP (1024px): left sidebar nav
+══════════════════════════════ */
+@media (min-width: 1024px) {
+  .app-shell {
+    flex-direction: row;
+  }
+
+  .app-main {
+    flex: 1;
+    min-width: 0;
+  }
+
+  /* On desktop switch to a fixed left sidebar */
+  .app-nav-wrap {
+    position: fixed;
+    bottom: unset;
+    top: 0;
+    left: 0;
+    right: unset;
+    width: 92px;
+    height: 100%;
+    flex-direction: column;
+    justify-content: flex-start;
+    align-items: stretch;
+    padding: 1.5rem 0.85rem;
+    pointer-events: all;
+  }
+
+  /* Push main content right to clear sidebar */
+  .app-main {
+    margin-left: 92px;
+  }
+
+  /* Sidebar glass panel */
+  .app-nav-glass {
+    flex-direction: column;
+    justify-content: flex-start;
+    align-items: center;
+    height: 100%;
+    width: 100%;
+    max-width: 100%;
+    border-radius: var(--radius-card);
+    padding: 2rem 0.5rem 1.5rem;
+    gap: 0.4rem;
+  }
+
+  .app-nav-btn {
+    width: 100%;
+    padding: 0.9rem 0.5rem;
+    border-radius: 18px;
+    flex-shrink: 0;
+    min-height: unset;
+  }
+
+  .app-nav-label {
+    font-size: 9px;
+  }
+}

@@ -1,0 +1,180 @@
+.live-session {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  background: #075e54;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 1.5rem;
+  color: #fff;
+}
+
+.live-session-close {
+  position: absolute;
+  top: 1.5rem;
+  right: 1.5rem;
+  padding: 0.5rem;
+  border: none;
+  background: transparent;
+  color: #fff;
+  border-radius: 50%;
+}
+
+.live-session-close:hover {
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.live-session-main {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2rem;
+  width: 100%;
+  max-width: 28rem;
+}
+
+.live-session-glow-wrap {
+  position: relative;
+}
+
+.live-session-pulse {
+  position: absolute;
+  inset: 0;
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: 50%;
+  filter: blur(40px);
+}
+
+.live-session-avatar {
+  width: 12rem;
+  height: 12rem;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 4px solid rgba(255, 255, 255, 0.2);
+  position: relative;
+  z-index: 10;
+}
+
+.live-session-cap {
+  color: #fff;
+}
+
+.live-session-text {
+  text-align: center;
+}
+
+.live-session-text h2 {
+  margin: 0 0 0.5rem;
+  font-size: 1.875rem;
+  font-weight: 900;
+  letter-spacing: -0.02em;
+}
+
+.live-session-text p {
+  margin: 0;
+  color: rgba(255, 255, 255, 0.7);
+  font-weight: 500;
+}
+
+.live-session-error {
+  color: #fecaca;
+  font-weight: 700;
+  margin-top: 0.5rem;
+}
+
+.live-session-controls {
+  display: flex;
+  align-items: center;
+  gap: 1.5rem;
+  padding-top: 1rem;
+}
+
+.live-session-round {
+  width: 5rem;
+  height: 5rem;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  transition: transform 0.15s;
+}
+
+.live-session-round--danger {
+  background: #ef4444;
+  color: #fff;
+}
+
+.live-session-round--light {
+  background: #fff;
+  color: #075e54;
+}
+
+.live-session-round--light:hover {
+  transform: scale(1.05);
+}
+
+.live-session-round--outline {
+  background: rgba(255, 255, 255, 0.1);
+  border: 2px solid rgba(255, 255, 255, 0.2);
+  color: #fff;
+}
+
+.live-session-round--outline:hover {
+  background: rgba(255, 255, 255, 0.2);
+}
+
+.live-session-loader {
+  color: rgba(255, 255, 255, 0.5);
+  animation: live-spin 0.9s linear infinite;
+}
+
+@keyframes live-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.live-session-footer {
+  width: 100%;
+  max-width: 20rem;
+  text-align: center;
+  padding-bottom: 2rem;
+}
+
+.live-session-badge {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  color: rgba(255, 255, 255, 0.5);
+  font-size: 0.75rem;
+  font-weight: 800;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+}
+
+.live-session-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #ef4444;
+  animation: live-pulse 1.5s ease infinite;
+}
+
+@keyframes live-pulse {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.4;
+  }
+}

@@ -1,0 +1,5 @@
+{
+  "name": "My Lecturer",
+  "description": "Personalized AI tutor for Zambian students with local slang and PDF RAG-lite context.",
+  "requestFramePermissions": ["microphone"]
+}

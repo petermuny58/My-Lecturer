@@ -1,0 +1,76 @@
+/* Google Font — Inter */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap');
+
+/* Global base — no Tailwind */
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+:root {
+  /* Backgrounds */
+  --bg-charcoal: #0d0d10;
+  --bg-elevated: #16161c;
+
+  /* Text */
+  --text-primary: #f0f0f5;
+  --text-muted: rgba(255, 255, 255, 0.5);
+
+  /* Accent */
+  --accent-orange: #ff8c42;
+  --accent-orange-glow: rgba(255, 140, 66, 0.4);
+
+  /* ── Glassmorphism tokens ── */
+  --glass-bg: rgba(255, 255, 255, 0.05);
+  --glass-border: rgba(255, 255, 255, 0.1);
+  --glass-blur: blur(12px);
+  --glass-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+
+  /* Neumorphic shading */
+  --neu-light: rgba(255, 255, 255, 0.05);
+  --neu-dark: rgba(0, 0, 0, 0.5);
+
+  /* Shared */
+  --radius-card: 30px;
+  --font-sans: 'Inter', system-ui, 'Segoe UI', Roboto, Ubuntu, sans-serif;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+}
+
+body {
+  margin: 0;
+  font-family: var(--font-sans);
+  background: var(--bg-charcoal);
+  color: var(--text-primary);
+  -webkit-font-smoothing: antialiased;
+}
+
+button {
+  font-family: inherit;
+  cursor: pointer;
+}
+
+input {
+  font-family: inherit;
+}
+
+a {
+  color: inherit;
+}
+
+/* Scrollbar — subtle dark styling */
+::-webkit-scrollbar {
+  width: 5px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.12);
+  border-radius: 999px;
+}

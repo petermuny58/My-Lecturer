@@ -1,0 +1,61 @@
+{
+  "entities": {
+    "UserProfile": {
+      "title": "User Profile",
+      "description": "Stores Zambian student preferences and university info.",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string" },
+        "university": { "type": "string" },
+        "major": { "type": "string" },
+        "vibe": { "type": "string", "enum": ["Strict", "Local/Slang"] },
+        "displayName": { "type": "string" },
+        "email": { "type": "string" },
+        "photoURL": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["uid", "university", "major", "vibe"]
+    },
+    "ChatSession": {
+      "title": "Chat Session",
+      "description": "Metadata for a chat session.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "userId": { "type": "string" },
+        "pdfUrl": { "type": "string" },
+        "pdfName": { "type": "string" },
+        "lastMessage": { "type": "string" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["userId", "updatedAt"]
+    },
+    "Message": {
+      "title": "Message",
+      "description": "Individual chat message.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "text": { "type": "string" },
+        "sender": { "type": "string", "enum": ["user", "ai"] },
+        "timestamp": { "type": "string", "format": "date-time" },
+        "pdfContext": { "type": "string" }
+      },
+      "required": ["text", "sender", "timestamp"]
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": "UserProfile",
+      "description": "User profiles for Zambian students."
+    },
+    "/users/{userId}/sessions/{sessionId}": {
+      "schema": "ChatSession",
+      "description": "Chat sessions for a specific user."
+    },
+    "/users/{userId}/sessions/{sessionId}/messages/{messageId}": {
+      "schema": "Message",
+      "description": "Messages within a session."
+    }
+  }
+}
