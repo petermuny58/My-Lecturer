@@ -1,10 +1,10 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { Send, Mic, MoreVertical, Paperclip, GraduationCap, Trash2 } from 'lucide-react';
+import { Send, Mic, MoreVertical, Paperclip, GraduationCap, Trash2, X } from 'lucide-react';
 import { UserProfile, Message, ChatBookContext } from '../types';
 import { db } from '../lib/firebase';
 import { collection, addDoc, query, orderBy, onSnapshot, serverTimestamp, getDocs, deleteDoc, writeBatch } from 'firebase/firestore';
-import { getGeminiResponse } from '../lib/gemini';
+import { getGeminiResponse, FileAttachment } from '../lib/gemini';
 import { translateToZedStyle } from '../lib/zedStyle';
 import PDFUpload from './PDFUpload';
 import LiveSession from './LiveSession';
@@ -26,8 +26,11 @@ export default function Chat({ profile, zedVibeEnabled, chatBookContext, onClear
   const [showMenu, setShowMenu] = useState(false);
   const [confirmClear, setConfirmClear] = useState(false);
   const [resetKey, setResetKey] = useState(0);
+  const [attachments, setAttachments] = useState<(FileAttachment & { name: string, previewUrl?: string })[]>([]);
+  
   const scrollRef = useRef<HTMLDivElement>(null);
   const inputBarRef = useRef<HTMLDivElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   /* ── Visual Viewport: float input above keyboard on mobile ── */
   const updateInputPosition = useCallback(() => {
@@ -98,10 +101,13 @@ export default function Chat({ profile, zedVibeEnabled, chatBookContext, onClear
   }, [messages]);
 
   const handleSend = async () => {
-    if (!inputText.trim() || isLoading) return;
+    if ((!inputText.trim() && attachments.length === 0) || isLoading) return;
 
-    const userMsg = inputText;
+    const userMsg = inputText.trim();
+    const currentAttachments = [...attachments];
+    
     setInputText('');
+    setAttachments([]);
     setIsLoading(true);
 
     try {
@@ -121,7 +127,8 @@ export default function Chat({ profile, zedVibeEnabled, chatBookContext, onClear
         userMsg,
         history,
         pdfContent || undefined,
-        chatBookContext
+        chatBookContext,
+        currentAttachments.map(a => ({ mimeType: a.mimeType, data: a.data }))
       );
 
       await addDoc(collection(db, 'users', profile.uid, 'sessions', 'default', 'messages'), {
@@ -133,6 +140,32 @@ export default function Chat({ profile, zedVibeEnabled, chatBookContext, onClear
       console.error('Failed to send message:', error);
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (!files) return;
+
+    for (let i = 0; i < files.length; i++) {
+      const file = files[i];
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        const result = reader.result as string;
+        // Strip out the data url prefix to get just the base64 part
+        const base64Data = result.split(',')[1];
+        setAttachments(prev => [...prev, {
+          mimeType: file.type || 'application/octet-stream',
+          data: base64Data,
+          name: file.name,
+          previewUrl: file.type.startsWith('image/') ? result : undefined
+        }]);
+      };
+      reader.readAsDataURL(file);
+    }
+    
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
     }
   };
 
@@ -269,26 +302,55 @@ export default function Chat({ profile, zedVibeEnabled, chatBookContext, onClear
       </div>
 
       <div className="chat-input-bar" ref={inputBarRef}>
-        <button type="button" className="chat-attach" aria-label="Attach">
-          <Paperclip size={24} />
-        </button>
-        <div className="chat-input-wrap">
-          <input
-            type="text"
-            placeholder="Type a message..."
-            value={inputText}
-            onChange={(e) => setInputText(e.target.value)}
-            onKeyDown={(e) => e.key === 'Enter' && handleSend()}
+        {attachments.length > 0 && (
+          <div className="chat-attachments-preview">
+            {attachments.map((att, idx) => (
+              <div key={idx} className="chat-attachment-item">
+                {att.previewUrl ? (
+                  <img src={att.previewUrl} alt={att.name} />
+                ) : (
+                  <div className="chat-attachment-doc">
+                    <Paperclip size={14} />
+                    <span>{att.name}</span>
+                  </div>
+                )}
+                <button type="button" onClick={() => setAttachments(prev => prev.filter((_, i) => i !== idx))}>
+                  <X size={14} />
+                </button>
+              </div>
+            ))}
+          </div>
+        )}
+        <div className="chat-input-row">
+          <input 
+            type="file" 
+            ref={fileInputRef} 
+            onChange={handleFileChange} 
+            style={{ display: 'none' }} 
+            multiple
+            accept="image/*,.pdf,.ppt,.pptx"
           />
+          <button type="button" className="chat-attach" aria-label="Attach" onClick={() => fileInputRef.current?.click()}>
+            <Paperclip size={24} />
+          </button>
+          <div className="chat-input-wrap">
+            <input
+              type="text"
+              placeholder="Type a message..."
+              value={inputText}
+              onChange={(e) => setInputText(e.target.value)}
+              onKeyDown={(e) => e.key === 'Enter' && handleSend()}
+            />
+          </div>
+          <button
+            type="button"
+            className="chat-send"
+            onClick={handleSend}
+            disabled={(!inputText.trim() && attachments.length === 0) || isLoading}
+          >
+            <Send size={20} />
+          </button>
         </div>
-        <button
-          type="button"
-          className="chat-send"
-          onClick={handleSend}
-          disabled={!inputText.trim() || isLoading}
-        >
-          <Send size={20} />
-        </button>
       </div>
 
       <AnimatePresence>

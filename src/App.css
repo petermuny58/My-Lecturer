@@ -149,6 +149,49 @@
   pointer-events: auto;
 }
 
+.app-profile-toggle {
+  position: absolute;
+  top: 1.5rem;
+  right: 1.5rem;
+  z-index: 50;
+  background: rgba(255, 255, 255, 0.5);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  border: 1px solid rgba(255, 255, 255, 0.4);
+  border-radius: 50%;
+  width: 44px;
+  height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--color-primary);
+  cursor: pointer;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+  transition: transform 0.2s, background 0.2s;
+}
+
+@media (prefers-color-scheme: dark) {
+  .app-profile-toggle {
+    background: rgba(30, 30, 30, 0.5);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    color: #e2e8f0;
+  }
+}
+
+.app-profile-toggle:active {
+  transform: scale(0.95);
+}
+
+.app-profile-toggle:hover {
+  background: rgba(255, 255, 255, 0.7);
+}
+
+@media (prefers-color-scheme: dark) {
+  .app-profile-toggle:hover {
+    background: rgba(40, 40, 40, 0.7);
+  }
+}
+
 .app-nav-glass {
   display: flex;
   align-items: center;

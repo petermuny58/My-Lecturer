@@ -7,8 +7,9 @@ import Onboarding from './components/Onboarding';
 import Chat from './components/Chat';
 import Home from './components/Home';
 import Library from './components/Library';
-import { GraduationCap, LogIn, Loader2, Home as HomeIcon, BookOpen, MessageSquare } from 'lucide-react';
+import { GraduationCap, LogIn, Loader2, Home as HomeIcon, BookOpen, MessageSquare, User } from 'lucide-react';
 import './App.css';
+import ProfileMenu from './components/ProfileMenu';
 
 type Tab = 'home' | 'lecture-hall' | 'books';
 
@@ -20,6 +21,7 @@ export default function App() {
   const [activeTab, setActiveTab] = useState<Tab>('home');
   const [zedVibeEnabled, setZedVibeEnabled] = useState(false);
   const [chatBookContext, setChatBookContext] = useState<ChatBookContext | null>(null);
+  const [isProfileOpen, setIsProfileOpen] = useState(false);
 
   const handleSignIn = async () => {
     setAuthError(null);
@@ -112,6 +114,21 @@ export default function App() {
 
   return (
     <div className="app-shell">
+      <button 
+        className="app-profile-toggle" 
+        onClick={() => setIsProfileOpen(true)}
+        aria-label="Open Profile"
+      >
+        <User size={24} />
+      </button>
+
+      <ProfileMenu 
+        isOpen={isProfileOpen} 
+        onClose={() => setIsProfileOpen(false)} 
+        zedVibeEnabled={zedVibeEnabled}
+        onZedVibeChange={setZedVibeEnabled}
+      />
+
       <div className="app-main">{renderContent()}</div>
 
       <div className="app-nav-wrap">
