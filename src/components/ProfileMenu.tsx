@@ -5,13 +5,15 @@ import './ProfileMenu.css';
 interface ProfileMenuProps {
   isOpen: boolean;
   onClose: () => void;
-  zedVibeEnabled: boolean;
-  onZedVibeChange: (on: boolean) => void;
+  exehEnabled: boolean;
+  onExehChange: (on: boolean) => void;
+  kopalaEnabled: boolean;
+  onKopalaChange: (on: boolean) => void;
 }
 
 const LANGUAGES = ['English', 'Chinyanja', 'Ichibemba', 'Lozi', 'Chitonga'];
 
-export default function ProfileMenu({ isOpen, onClose, zedVibeEnabled, onZedVibeChange }: ProfileMenuProps) {
+export default function ProfileMenu({ isOpen, onClose, exehEnabled, onExehChange, kopalaEnabled, onKopalaChange }: ProfileMenuProps) {
   const [persona, setPersona] = useState(() => localStorage.getItem('userPersona') || '');
   const [language, setLanguage] = useState(() => localStorage.getItem('userLanguage') || 'English');
 
@@ -85,17 +87,33 @@ export default function ProfileMenu({ isOpen, onClose, zedVibeEnabled, onZedVibe
           <section className="profile-section">
             <div className="profile-section-title">
               <Flame size={20} />
-              <h3>Zed Spice 🌶️</h3>
+              <h3>AI Persona & Slang 🌶️</h3>
             </div>
+            <p className="profile-hint">Choose how My Lecturer speaks (mutually exclusive). If neither is selected, Standard Academic English is used.</p>
+            
             <div className="profile-vibe-row">
               <p className="profile-hint" style={{ margin: 0, flex: 1 }}>
-                Turn on for local slang (minibus & Kantemba vibes).
+                <strong>Exeh Language</strong> (Lusaka slang)
               </p>
               <label className="toggle">
                 <input
                   type="checkbox"
-                  checked={zedVibeEnabled}
-                  onChange={(e) => onZedVibeChange(e.target.checked)}
+                  checked={exehEnabled}
+                  onChange={(e) => onExehChange(e.target.checked)}
+                />
+                <span className="toggle-slider" />
+              </label>
+            </div>
+
+            <div className="profile-vibe-row" style={{ marginTop: '1rem' }}>
+              <p className="profile-hint" style={{ margin: 0, flex: 1 }}>
+                <strong>Kopala Vibes</strong> (Copperbelt slang)
+              </p>
+              <label className="toggle">
+                <input
+                  type="checkbox"
+                  checked={kopalaEnabled}
+                  onChange={(e) => onKopalaChange(e.target.checked)}
                 />
                 <span className="toggle-slider" />
               </label>

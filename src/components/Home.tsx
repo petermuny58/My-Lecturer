@@ -5,11 +5,13 @@ import './Home.css';
 
 interface HomeProps {
   profile: UserProfile;
-  zedVibeEnabled: boolean;
-  onZedVibeChange: (on: boolean) => void;
+  exehEnabled: boolean;
+  onExehChange: (on: boolean) => void;
+  kopalaEnabled: boolean;
+  onKopalaChange: (on: boolean) => void;
 }
 
-export default function Home({ profile, zedVibeEnabled, onZedVibeChange }: HomeProps) {
+export default function Home({ profile, exehEnabled, onExehChange, kopalaEnabled, onKopalaChange }: HomeProps) {
   const firstName = profile.displayName?.split(/\s+/)[0] || 'Student';
 
   return (
@@ -35,17 +37,33 @@ export default function Home({ profile, zedVibeEnabled, onZedVibeChange }: HomeP
 
       <section className="home-vibe" aria-label="Vibe Check">
         <div className="home-vibe-text">
-          <strong>Vibe Check</strong>
-          <span>When on, AI replies get the Zed-style rewrite (minibus &amp; Kantemba spice).</span>
+          <strong>AI Persona</strong>
+          <span>Toggle Exeh or Kopala vibes for the AI. If both are off, it uses standard English.</span>
         </div>
-        <label className="toggle">
-          <input
-            type="checkbox"
-            checked={zedVibeEnabled}
-            onChange={(e) => onZedVibeChange(e.target.checked)}
-          />
-          <span className="toggle-slider" />
-        </label>
+        <div style={{ display: 'flex', gap: '1rem', marginTop: '0.5rem' }}>
+          <label className="toggle" style={{ display: 'flex', alignItems: 'center' }}>
+            <span style={{ fontSize: '0.85rem', marginRight: '0.5rem' }}>Exeh</span>
+            <div style={{ position: 'relative' }}>
+              <input
+                type="checkbox"
+                checked={exehEnabled}
+                onChange={(e) => onExehChange(e.target.checked)}
+              />
+              <span className="toggle-slider" />
+            </div>
+          </label>
+          <label className="toggle" style={{ display: 'flex', alignItems: 'center' }}>
+            <span style={{ fontSize: '0.85rem', marginRight: '0.5rem' }}>Kopala</span>
+            <div style={{ position: 'relative' }}>
+              <input
+                type="checkbox"
+                checked={kopalaEnabled}
+                onChange={(e) => onKopalaChange(e.target.checked)}
+              />
+              <span className="toggle-slider" />
+            </div>
+          </label>
+        </div>
       </section>
     </div>
   );

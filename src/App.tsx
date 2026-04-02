@@ -19,7 +19,8 @@ export default function App() {
   const [loading, setLoading] = useState(true);
   const [authError, setAuthError] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<Tab>('home');
-  const [zedVibeEnabled, setZedVibeEnabled] = useState(false);
+  const [exehEnabled, setExehEnabled] = useState(false);
+  const [kopalaEnabled, setKopalaEnabled] = useState(false);
   const [chatBookContext, setChatBookContext] = useState<ChatBookContext | null>(null);
   const [isProfileOpen, setIsProfileOpen] = useState(false);
 
@@ -92,15 +93,18 @@ export default function App() {
         return (
           <Home
             profile={profile}
-            zedVibeEnabled={zedVibeEnabled}
-            onZedVibeChange={setZedVibeEnabled}
+            exehEnabled={exehEnabled}
+            onExehChange={(val) => { setExehEnabled(val); if(val) setKopalaEnabled(false); }}
+            kopalaEnabled={kopalaEnabled}
+            onKopalaChange={(val) => { setKopalaEnabled(val); if(val) setExehEnabled(false); }}
           />
         );
       case 'lecture-hall':
         return (
           <Chat
             profile={profile}
-            zedVibeEnabled={zedVibeEnabled}
+            exehEnabled={exehEnabled}
+            kopalaEnabled={kopalaEnabled}
             chatBookContext={chatBookContext}
             onClearBookContext={() => setChatBookContext(null)}
           />
@@ -125,8 +129,10 @@ export default function App() {
       <ProfileMenu 
         isOpen={isProfileOpen} 
         onClose={() => setIsProfileOpen(false)} 
-        zedVibeEnabled={zedVibeEnabled}
-        onZedVibeChange={setZedVibeEnabled}
+        exehEnabled={exehEnabled}
+        onExehChange={(val) => { setExehEnabled(val); if(val) setKopalaEnabled(false); }}
+        kopalaEnabled={kopalaEnabled}
+        onKopalaChange={(val) => { setKopalaEnabled(val); if(val) setExehEnabled(false); }}
       />
 
       <div className="app-main">{renderContent()}</div>

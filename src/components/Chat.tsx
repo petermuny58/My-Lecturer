@@ -5,19 +5,19 @@ import { UserProfile, Message, ChatBookContext } from '../types';
 import { db } from '../lib/firebase';
 import { collection, addDoc, query, orderBy, onSnapshot, serverTimestamp, getDocs, deleteDoc, writeBatch } from 'firebase/firestore';
 import { getGeminiResponse, FileAttachment } from '../lib/gemini';
-import { translateToZedStyle } from '../lib/zedStyle';
 import PDFUpload from './PDFUpload';
 import LiveSession from './LiveSession';
 import './Chat.css';
 
 interface ChatProps {
   profile: UserProfile;
-  zedVibeEnabled: boolean;
+  exehEnabled: boolean;
+  kopalaEnabled: boolean;
   chatBookContext: ChatBookContext | null;
   onClearBookContext: () => void;
 }
 
-export default function Chat({ profile, zedVibeEnabled, chatBookContext, onClearBookContext }: ChatProps) {
+export default function Chat({ profile, exehEnabled, kopalaEnabled, chatBookContext, onClearBookContext }: ChatProps) {
   const [messages, setMessages] = useState<Message[]>([]);
   const [inputText, setInputText] = useState('');
   const [pdfContent, setPdfContent] = useState<string | null>(null);
@@ -57,8 +57,7 @@ export default function Chat({ profile, zedVibeEnabled, chatBookContext, onClear
     };
   }, [updateInputPosition]);
 
-  const displayAiText = (raw: string) =>
-    zedVibeEnabled ? translateToZedStyle(raw) : raw;
+  // Removed translateToZedStyle, AI now naturally uses styles based on gemini prompt
 
   const clearChat = async () => {
     try {
@@ -100,6 +99,35 @@ export default function Chat({ profile, zedVibeEnabled, chatBookContext, onClear
     }
   }, [messages]);
 
+  // Proactive Messaging ('AI Speaks First')
+  useEffect(() => {
+    if (messages.length === 0 && !isLoading) {
+      const initGreeting = async () => {
+        setIsLoading(true);
+        let greetingText = "Hello! Welcome to your digital lecture hall. What would you like to study today?";
+        if (exehEnabled) {
+          greetingText = "Laka? What are we working on today my guy?";
+        } else if (kopalaEnabled) {
+          greetingText = "Mudala, what are we studying? Let's get to it sharp sharp.";
+        }
+        
+        try {
+          await addDoc(collection(db, 'users', profile.uid, 'sessions', 'default', 'messages'), {
+            text: greetingText,
+            sender: 'ai',
+            timestamp: serverTimestamp(),
+          });
+        } catch (error) {
+          console.error('Failed to send proactive message:', error);
+        } finally {
+          setIsLoading(false);
+        }
+      };
+      
+      initGreeting();
+    }
+  }, [messages.length, exehEnabled, kopalaEnabled, profile.uid]);
+
   const handleSend = async () => {
     if ((!inputText.trim() && attachments.length === 0) || isLoading) return;
 
@@ -126,6 +154,8 @@ export default function Chat({ profile, zedVibeEnabled, chatBookContext, onClear
         profile,
         userMsg,
         history,
+        exehEnabled,
+        kopalaEnabled,
         pdfContent || undefined,
         chatBookContext,
         currentAttachments.map(a => ({ mimeType: a.mimeType, data: a.data }))
@@ -265,11 +295,7 @@ export default function Chat({ profile, zedVibeEnabled, chatBookContext, onClear
             <div className="chat-empty-icon">
               <GraduationCap size={40} />
             </div>
-            <p>
-              {profile.vibe === 'Local/Slang'
-                ? 'Exeh! Upload your module mwana, let\'s start butah-ing those concepts!'
-                : 'Good day. Please upload your course material to begin our academic session.'}
-            </p>
+            <p>Gathering your course materials...</p>
           </div>
         )}
 
@@ -281,7 +307,7 @@ export default function Chat({ profile, zedVibeEnabled, chatBookContext, onClear
             className={`chat-row ${msg.sender === 'user' ? 'chat-row--user' : 'chat-row--ai'}`}
           >
             <div className={`chat-bubble ${msg.sender === 'user' ? 'chat-bubble--user' : 'chat-bubble--ai'}`}>
-              <p>{msg.sender === 'ai' ? displayAiText(msg.text) : msg.text}</p>
+              <p>{msg.text}</p>
               <time>
                 {msg.timestamp?.toDate
                   ? msg.timestamp.toDate().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
