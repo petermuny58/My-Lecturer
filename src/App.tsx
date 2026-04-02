@@ -93,10 +93,6 @@ export default function App() {
         return (
           <Home
             profile={profile}
-            exehEnabled={exehEnabled}
-            onExehChange={(val) => { setExehEnabled(val); if(val) setKopalaEnabled(false); }}
-            kopalaEnabled={kopalaEnabled}
-            onKopalaChange={(val) => { setKopalaEnabled(val); if(val) setExehEnabled(false); }}
           />
         );
       case 'lecture-hall':
@@ -118,13 +114,15 @@ export default function App() {
 
   return (
     <div className="app-shell">
-      <button 
-        className="app-profile-toggle" 
-        onClick={() => setIsProfileOpen(true)}
-        aria-label="Open Profile"
-      >
-        <User size={24} />
-      </button>
+      {activeTab === 'home' && (
+        <button 
+          className="app-profile-toggle" 
+          onClick={() => setIsProfileOpen(true)}
+          aria-label="Open Profile"
+        >
+          <User size={24} />
+        </button>
+      )}
 
       <ProfileMenu 
         isOpen={isProfileOpen} 
