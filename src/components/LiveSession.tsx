@@ -37,7 +37,7 @@ export default function LiveSession({ profile, exehEnabled, kopalaEnabled, pdfCo
       const ai = new GoogleGenAI({ apiKey: (import.meta as any).env.VITE_GEMINI_API_KEY! });
       
       const session = await ai.live.connect({
-        model: "gemini-2.0-flash-exp",
+        model: "gemini-3.1-flash-live-preview",
         config: {
           responseModalities: [Modality.AUDIO],
           speechConfig: {
@@ -76,12 +76,13 @@ export default function LiveSession({ profile, exehEnabled, kopalaEnabled, pdfCo
           },
           onclose: () => {
             cleanup();
-            onClose();
+            // Don't call onClose() automatically to prevent modal from vanishing
           },
           onerror: (err) => {
             console.error("Live API Error:", err);
-            setError("Connection lost. Please try again.");
+            setError("Connection failed. Check your API key or model access.");
             setIsConnecting(false);
+            setIsActive(false);
           }
         }
       });
