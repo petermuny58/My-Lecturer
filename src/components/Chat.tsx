@@ -182,13 +182,26 @@ export default function Chat({ profile, exehEnabled, kopalaEnabled, chatBookCont
       const reader = new FileReader();
       reader.onloadend = () => {
         const result = reader.result as string;
-        // Strip out the data url prefix to get just the base64 part
         const base64Data = result.split(',')[1];
+        
+        let inferredType = file.type;
+        if (!inferredType) {
+          const ext = file.name.split('.').pop()?.toLowerCase();
+          if (ext === 'pdf') inferredType = 'application/pdf';
+          else if (ext === 'ppt') inferredType = 'application/vnd.ms-powerpoint';
+          else if (ext === 'pptx') inferredType = 'application/vnd.openxmlformats-officedocument.presentationml.presentation';
+          else if (ext === 'doc') inferredType = 'application/msword';
+          else if (ext === 'docx') inferredType = 'application/vnd.openxmlformats-officedocument.wordprocessingml.document';
+          else if (ext === 'png') inferredType = 'image/png';
+          else if (ext === 'jpg' || ext === 'jpeg') inferredType = 'image/jpeg';
+          else inferredType = 'application/octet-stream';
+        }
+
         setAttachments(prev => [...prev, {
-          mimeType: file.type || 'application/octet-stream',
+          mimeType: inferredType,
           data: base64Data,
           name: file.name,
-          previewUrl: file.type.startsWith('image/') ? result : undefined
+          previewUrl: inferredType.startsWith('image/') ? result : undefined
         }]);
       };
       reader.readAsDataURL(file);
