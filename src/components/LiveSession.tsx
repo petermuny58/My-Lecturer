@@ -37,7 +37,7 @@ export default function LiveSession({ profile, exehEnabled, kopalaEnabled, pdfCo
       const ai = new GoogleGenAI({ apiKey: (import.meta as any).env.VITE_GEMINI_API_KEY! });
       
       const session = await ai.live.connect({
-        model: "gemini-3.1-flash-live-preview",
+        model: "gemini-2.0-flash-exp",
         config: {
           responseModalities: [Modality.AUDIO],
           speechConfig: {
@@ -49,6 +49,9 @@ export default function LiveSession({ profile, exehEnabled, kopalaEnabled, pdfCo
           onopen: () => {
             setIsActive(true);
             setIsConnecting(false);
+            if (audioContextRef.current?.state === 'suspended') {
+              audioContextRef.current.resume();
+            }
             startMicrophone();
             
             // Proactive AI greeting for Podcast mode
@@ -101,8 +104,13 @@ export default function LiveSession({ profile, exehEnabled, kopalaEnabled, pdfCo
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
       streamRef.current = stream;
 
-      const audioContext = new AudioContext({ sampleRate: 16000 });
-      audioContextRef.current = audioContext;
+      if (!audioContextRef.current) {
+        audioContextRef.current = new AudioContext({ sampleRate: 16000 });
+      }
+      const audioContext = audioContextRef.current;
+      if (audioContext.state === 'suspended') {
+        await audioContext.resume();
+      }
 
       const source = audioContext.createMediaStreamSource(stream);
       const processor = audioContext.createScriptProcessor(4096, 1, 1);
@@ -144,12 +152,18 @@ export default function LiveSession({ profile, exehEnabled, kopalaEnabled, pdfCo
       floatData[i] = pcmData[i] / 0x7FFF;
     }
 
-    const buffer = audioContextRef.current.createBuffer(1, floatData.length, 16000);
+    if (!audioContextRef.current) return;
+    const audioContext = audioContextRef.current;
+    if (audioContext.state === 'suspended') {
+      await audioContext.resume();
+    }
+
+    const buffer = audioContext.createBuffer(1, floatData.length, 16000);
     buffer.getChannelData(0).set(floatData);
 
-    const source = audioContextRef.current.createBufferSource();
+    const source = audioContext.createBufferSource();
     source.buffer = buffer;
-    source.connect(audioContextRef.current.destination);
+    source.connect(audioContext.destination);
     source.onended = () => playNextInQueue();
     source.start();
   };
