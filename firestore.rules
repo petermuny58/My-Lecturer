@@ -31,6 +31,10 @@ service cloud.firestore {
           allow read, write: if isOwner(userId);
         }
       }
+      
+      match /chunks/{chunkId} {
+        allow read, write: if isOwner(userId);
+      }
     }
   }
 }

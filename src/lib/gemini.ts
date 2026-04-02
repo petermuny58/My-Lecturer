@@ -77,7 +77,7 @@ CRITICAL: You MUST use the user's 'Who are you?' info to make these slang terms 
 export async function generateEmbedding(text: string) {
   const ai = new GoogleGenAI({ apiKey: (import.meta as any).env.VITE_GEMINI_API_KEY });
   const result = await ai.models.embedContent({
-    model: "text-embedding-004",
+    model: "text-embedding-001", // Stabilizing with 001 if newer versions have v1beta access issues
     contents: [{ parts: [{ text }] }]
   });
   return result.embeddings[0].values;
@@ -128,12 +128,27 @@ export async function getGeminiResponse(
   const userParts: any[] = [{ text: message }];
   if (attachments && attachments.length > 0) {
     attachments.forEach(att => {
-      userParts.push({
-        inlineData: {
-          data: att.data,
-          mimeType: att.mimeType
-        }
-      });
+      const supportedInlineTypes = [
+        'application/pdf', 
+        'text/plain', 
+        'text/markdown', 
+        'text/javascript', 
+        'text/html'
+      ];
+      const isImage = att.mimeType.startsWith('image/');
+      const isVideo = att.mimeType.startsWith('video/');
+      const isAudio = att.mimeType.startsWith('audio/');
+      
+      if (isImage || isVideo || isAudio || supportedInlineTypes.includes(att.mimeType)) {
+        userParts.push({
+          inlineData: {
+            data: att.data,
+            mimeType: att.mimeType
+          }
+        });
+      } else {
+        console.warn(`Skipping unsupported attachment type for models: ${att.mimeType}. Only Images, PDFs, and common text types are supported as direct attachments.`);
+      }
     });
   }
 
