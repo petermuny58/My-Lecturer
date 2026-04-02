@@ -54,12 +54,7 @@ export default function LiveSession({ profile, exehEnabled, kopalaEnabled, pdfCo
             }
             startMicrophone();
             
-            // Proactive AI greeting for Podcast mode
-            if (mode === 'podcast') {
-              sessionRef.current.sendRealtimeInput({
-                text: "I want to start a study podcast session. Please introduce yourself as my lecturer and ask if I'd like you to explain the uploaded study module/book."
-              });
-            }
+            // Proactive AI greeting moved to useEffect to avoid race condition with sessionRef.current
           },
           onmessage: async (message) => {
             if (message.serverContent?.modelTurn?.parts?.[0]?.inlineData?.data) {
@@ -194,6 +189,15 @@ export default function LiveSession({ profile, exehEnabled, kopalaEnabled, pdfCo
     }
     return () => cleanup();
   }, [mode]);
+
+  // Handle proactive greeting for podcast mode after session is established
+  useEffect(() => {
+    if (isActive && sessionRef.current && mode === 'podcast') {
+      sessionRef.current.sendRealtimeInput({
+        text: "I want to start a study podcast session. Please introduce yourself as my lecturer and ask if I'd like you to explain the uploaded study module/book."
+      });
+    }
+  }, [isActive, mode]);
 
   return (
     <motion.div
