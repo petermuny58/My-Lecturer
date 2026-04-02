@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { motion } from 'motion/react';
-import { X, Mic, MicOff, Loader2, GraduationCap } from 'lucide-react';
+import { X, Mic, MicOff, Loader2, GraduationCap, BrainCircuit } from 'lucide-react';
 import { GoogleGenAI, Modality } from "@google/genai";
 import './LiveSession.css';
 import { UserProfile, ChatBookContext } from '../types';
@@ -8,15 +8,18 @@ import { AssistantConfig } from '../lib/gemini';
 
 interface LiveSessionProps {
   profile: UserProfile;
+  exehEnabled: boolean;
+  kopalaEnabled: boolean;
   pdfContent: string | null;
   bookContext?: ChatBookContext | null;
   onClose: () => void;
 }
 
-export default function LiveSession({ profile, pdfContent, bookContext, onClose }: LiveSessionProps) {
+export default function LiveSession({ profile, exehEnabled, kopalaEnabled, pdfContent, bookContext, onClose }: LiveSessionProps) {
+  const [mode, setMode] = useState<'selection' | 'live' | 'podcast'>('selection');
   const [isActive, setIsActive] = useState(false);
   const [isMuted, setIsMuted] = useState(false);
-  const [isConnecting, setIsConnecting] = useState(true);
+  const [isConnecting, setIsConnecting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   
   const audioContextRef = useRef<AudioContext | null>(null);
@@ -31,7 +34,7 @@ export default function LiveSession({ profile, pdfContent, bookContext, onClose 
       setIsConnecting(true);
       setError(null);
 
-      const ai = new GoogleGenAI({ apiKey: import.meta.env.VITE_GEMINI_API_KEY! });
+      const ai = new GoogleGenAI({ apiKey: (import.meta as any).env.VITE_GEMINI_API_KEY! });
       
       const session = await ai.live.connect({
         model: "gemini-3.1-flash-live-preview",
@@ -40,13 +43,20 @@ export default function LiveSession({ profile, pdfContent, bookContext, onClose 
           speechConfig: {
             voiceConfig: { prebuiltVoiceConfig: { voiceName: "Zephyr" } },
           },
-          systemInstruction: AssistantConfig.getSystemInstruction(profile, pdfContent || undefined, bookContext ?? undefined),
+          systemInstruction: AssistantConfig.getSystemInstruction(profile, exehEnabled, kopalaEnabled, pdfContent || undefined, bookContext ?? undefined),
         },
         callbacks: {
           onopen: () => {
             setIsActive(true);
             setIsConnecting(false);
             startMicrophone();
+            
+            // Proactive AI greeting for Podcast mode
+            if (mode === 'podcast') {
+              sessionRef.current.sendRealtimeInput({
+                text: "I want to start a study podcast session. Please introduce yourself as my lecturer and ask if I'd like you to explain the uploaded study module/book."
+              });
+            }
           },
           onmessage: async (message) => {
             if (message.serverContent?.modelTurn?.parts?.[0]?.inlineData?.data) {
@@ -165,9 +175,11 @@ export default function LiveSession({ profile, pdfContent, bookContext, onClose 
   };
 
   useEffect(() => {
-    startSession();
+    if (mode !== 'selection') {
+      startSession();
+    }
     return () => cleanup();
-  }, []);
+  }, [mode]);
 
   return (
     <motion.div
@@ -180,57 +192,85 @@ export default function LiveSession({ profile, pdfContent, bookContext, onClose 
         <X size={32} />
       </button>
 
-      <div className="live-session-main">
-        <div className="live-session-glow-wrap">
-          <motion.div
-            animate={{
-              scale: isActive && !isMuted ? [1, 1.2, 1] : 1,
-              opacity: isActive && !isMuted ? [0.5, 1, 0.5] : 0.5,
-            }}
-            transition={{ repeat: Infinity, duration: 2 }}
-            className="live-session-pulse"
-          />
-          <div className="live-session-avatar">
-            <GraduationCap size={80} className="live-session-cap" />
+      {mode === 'selection' ? (
+        <div className="live-selection-screen">
+          <div className="live-selection-header">
+            <GraduationCap size={48} className="live-selection-icon" />
+            <h1>Digital Lecture Hall</h1>
+            <p>How would you like to study today?</p>
           </div>
-        </div>
-
-        <div className="live-session-text">
-          <h2>{isConnecting ? 'Connecting...' : isActive ? 'Live Session' : 'Session Ended'}</h2>
-          <p>
-            {isConnecting
-              ? 'Waking up your lecturer...'
-              : isMuted
-                ? 'Microphone Muted'
-                : "Speak naturally, I'm listening."}
-          </p>
-          {error && <p className="live-session-error">{error}</p>}
-        </div>
-
-        {isActive && (
-          <div className="live-session-controls">
-            <button
-              type="button"
-              onClick={() => setIsMuted(!isMuted)}
-              className={`live-session-round ${isMuted ? 'live-session-round--danger' : 'live-session-round--light'}`}
-            >
-              {isMuted ? <MicOff size={32} /> : <Mic size={32} />}
+          
+          <div className="live-selection-grid">
+            <button className="live-selection-card" onClick={() => setMode('live')}>
+              <div className="live-card-icon"><Mic size={32} /></div>
+              <h3>Live Chat</h3>
+              <p>Speak naturally, and I'll answer your questions in real-time.</p>
             </button>
-            <button type="button" onClick={onClose} className="live-session-round live-session-round--outline">
-              <X size={32} />
+            
+            <button className="live-selection-card live-selection-card--podcast" onClick={() => setMode('podcast')}>
+              <div className="live-card-icon"><BrainCircuit size={32} /></div>
+              <h3>Podcast Mode</h3>
+              <p>Sit back as I guide you through your course material proactively.</p>
             </button>
           </div>
-        )}
-
-        {isConnecting && <Loader2 className="live-session-loader" size={40} />}
-      </div>
-
-      <div className="live-session-footer">
-        <div className="live-session-badge">
-          <span className="live-session-dot" />
-          Real-time Academic Support
         </div>
-      </div>
+      ) : (
+        <div className="live-session-main">
+          <div className="live-session-glow-wrap">
+            <motion.div
+              animate={{
+                scale: isActive && !isMuted ? [1, 1.2, 1] : 1,
+                opacity: isActive && !isMuted ? [0.5, 1, 0.5] : 0.5,
+              }}
+              transition={{ repeat: Infinity, duration: 2 }}
+              className="live-session-pulse"
+            />
+            <div className="live-session-avatar">
+              <GraduationCap size={80} className="live-session-cap" />
+            </div>
+          </div>
+
+          <div className="live-session-text">
+            <h2>{isConnecting ? 'Connecting...' : isActive ? (mode === 'podcast' ? 'Podcast Session' : 'Live Session') : 'Session Ended'}</h2>
+            <p>
+              {isConnecting
+                ? 'Waking up your lecturer...'
+                : isMuted
+                  ? 'Microphone Muted'
+                  : mode === 'podcast' 
+                    ? 'AI is leading the session...'
+                    : "Speak naturally, I'm listening."}
+            </p>
+            {error && <p className="live-session-error">{error}</p>}
+          </div>
+
+          {isActive && (
+            <div className="live-session-controls">
+              <button
+                type="button"
+                onClick={() => setIsMuted(!isMuted)}
+                className={`live-session-round ${isMuted ? 'live-session-round--danger' : 'live-session-round--light'}`}
+              >
+                {isMuted ? <MicOff size={32} /> : <Mic size={32} />}
+              </button>
+              <button type="button" onClick={onClose} className="live-session-round live-session-round--outline">
+                <X size={32} />
+              </button>
+            </div>
+          )}
+
+          {isConnecting && <Loader2 className="live-session-loader" size={40} />}
+        </div>
+      )}
+
+      {mode !== 'selection' && (
+        <div className="live-session-footer">
+          <div className="live-session-badge">
+            <span className="live-session-dot" />
+            {mode === 'podcast' ? 'Podcast in Progress' : 'Real-time Academic Support'}
+          </div>
+        </div>
+      )}
     </motion.div>
   );
 }

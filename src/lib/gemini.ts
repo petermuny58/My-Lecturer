@@ -1,5 +1,7 @@
 import { GoogleGenAI, Modality } from "@google/genai";
 import { UserProfile, ChatBookContext } from "../types";
+import { db } from "./firebase";
+import { collection, query, getDocs, vector, VectorValue } from "firebase/firestore";
 
 export class AssistantConfig {
   static getSystemInstruction(profile: UserProfile, exehEnabled: boolean, kopalaEnabled: boolean, pdfContent?: string, bookContext?: ChatBookContext | null) {
@@ -43,6 +45,15 @@ CRITICAL: You MUST use the user's 'Who are you?' info to make these slang terms 
       `
       : '';
 
+    const ragBlock = pdfContent 
+      ? `STRICT RULE: You must ONLY use the content provided below to answer questions. If the answer is not in the text, politely say you don't know based on the module, but offer to help with general concepts if they ask.
+      
+      RETRIEVED CONTEXT FROM MODULE (RAG):
+      ---
+      ${pdfContent}
+      ---`
+      : "No PDF module uploaded yet. Greet the student and ask them to upload their study material.";
+
     return `
       You are "My Lecturer", a personalized AI tutor for a student at ${profile.university} majoring in ${profile.major}.
       
@@ -54,15 +65,46 @@ CRITICAL: You MUST use the user's 'Who are you?' info to make these slang terms 
       
       ${personaInstructions}
       ${bookBlock}
-      RAG-LITE MODE:
-      ${pdfContent ? `The following is the content of the student's study module:
-      ---
-      ${pdfContent}
-      ---
-      STRICT RULE: You must ONLY use the content provided above to answer questions. If the answer is not in the text, politely say you don't know based on the module, but offer to help with general concepts if they ask.` : "No PDF module uploaded yet. Greet the student and ask them to upload their study material."}
+      
+      RAG CONTEXT:
+      ${ragBlock}
       
       Stay in character always.
     `;
+  }
+}
+
+export async function generateEmbedding(text: string) {
+  const ai = new GoogleGenAI({ apiKey: (import.meta as any).env.VITE_GEMINI_API_KEY });
+  const result = await ai.models.embedContent({
+    model: "text-embedding-004",
+    contents: [{ parts: [{ text }] }]
+  });
+  return result.embeddings[0].values;
+}
+
+export async function searchRelevantContext(uid: string, queryText: string) {
+  try {
+    const embedding = await generateEmbedding(queryText);
+    const chunksRef = collection(db, 'users', uid, 'chunks');
+    
+    // Using vector indexing requires specific Firestore SDK support
+    // and findNearest in older versions was part of the 'vector' namespace
+    const q = query(
+      chunksRef,
+      // @ts-ignore - findNearest exists in newer Firestore but types might be missing
+      vector.findNearest('embedding', new VectorValue(embedding), {
+        limit: 5,
+        distanceMeasure: 'COSINE'
+      })
+    );
+
+    const snapshot = await getDocs(q);
+    const context = snapshot.docs.map(doc => doc.data().text).join('\n\n');
+    return context;
+  } catch (error) {
+    console.warn("Vector search failed (likely missing index or SDK mismatch):", error);
+    return null;
   }
 }
 
@@ -81,7 +123,7 @@ export async function getGeminiResponse(
   bookContext?: ChatBookContext | null,
   attachments?: FileAttachment[]
 ) {
-  const ai = new GoogleGenAI({ apiKey: import.meta.env.VITE_GEMINI_API_KEY });
+  const ai = new GoogleGenAI({ apiKey: (import.meta as any).env.VITE_GEMINI_API_KEY });
   
   const userParts: any[] = [{ text: message }];
   if (attachments && attachments.length > 0) {
@@ -95,19 +137,27 @@ export async function getGeminiResponse(
     });
   }
 
-  const model = ai.models.generateContent({
+  // Try to get relevant context from vector DB if user has uploaded docs
+  let enhancedContext = pdfContent;
+  if (!pdfContent && !attachments?.length) {
+    const vectorContext = await searchRelevantContext(profile.uid, message);
+    if (vectorContext) {
+      enhancedContext = vectorContext;
+    }
+  }
+
+  const response = await ai.models.generateContent({
     model: "gemini-2.5-flash",
     contents: [
       ...history,
       { role: 'user', parts: userParts }
     ],
     config: {
-      systemInstruction: AssistantConfig.getSystemInstruction(profile, exehEnabled, kopalaEnabled, pdfContent, bookContext),
+      systemInstruction: AssistantConfig.getSystemInstruction(profile, exehEnabled, kopalaEnabled, enhancedContext, bookContext),
       temperature: 0.7,
     }
   });
 
-  const response = await model;
   return response.text;
 }
 

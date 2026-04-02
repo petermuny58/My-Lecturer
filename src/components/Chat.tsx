@@ -294,6 +294,7 @@ export default function Chat({ profile, exehEnabled, kopalaEnabled, chatBookCont
       <div ref={scrollRef} className="chat-scroll">
         <div key={resetKey} className="chat-pdf-slot">
           <PDFUpload
+            uid={profile.uid}
             onUpload={(text, _name) => {
               setPdfContent(text);
             }}
@@ -397,6 +398,8 @@ export default function Chat({ profile, exehEnabled, kopalaEnabled, chatBookCont
         {showLiveSession && (
           <LiveSession
             profile={profile}
+            exehEnabled={exehEnabled}
+            kopalaEnabled={kopalaEnabled}
             pdfContent={pdfContent}
             bookContext={chatBookContext}
             onClose={() => setShowLiveSession(false)}

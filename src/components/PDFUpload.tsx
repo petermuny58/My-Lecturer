@@ -1,27 +1,59 @@
 import React, { useCallback, useState } from 'react';
 import { useDropzone } from 'react-dropzone';
 import './PDFUpload.css';
-import { FileUp, FileText, X, Loader2 } from 'lucide-react';
+import { FileUp, FileText, X, Loader2, BrainCircuit } from 'lucide-react';
 import * as pdfjsLib from 'pdfjs-dist';
+import { db } from '../lib/firebase';
+import { collection, addDoc, query, getDocs, deleteDoc, writeBatch, VectorValue } from 'firebase/firestore';
+import { generateEmbedding } from '../lib/gemini';
 // @ts-ignore
 import pdfWorker from 'pdfjs-dist/build/pdf.worker.mjs?url';
 
 pdfjsLib.GlobalWorkerOptions.workerSrc = pdfWorker;
 
 interface PDFUploadProps {
+  uid: string;
   onUpload: (text: string, fileName: string) => void;
   onRemove: () => void;
 }
 
-export default function PDFUpload({ onUpload, onRemove }: PDFUploadProps) {
+export default function PDFUpload({ uid, onUpload, onRemove }: PDFUploadProps) {
   const [isExtracting, setIsExtracting] = useState(false);
+  const [isIndexing, setIsIndexing] = useState(false);
   const [fileName, setFileName] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
-  const handleRemove = () => {
+  const handleRemove = async () => {
     setFileName(null);
     setError(null);
     onRemove();
+    
+    // Clear old chunks from Firestore
+    try {
+      const q = query(collection(db, 'users', uid, 'chunks'));
+      const snapshot = await getDocs(q);
+      const batch = writeBatch(db);
+      snapshot.docs.forEach(doc => batch.delete(doc.ref));
+      await batch.commit();
+    } catch (err) {
+      console.warn("Failed to clear chunks:", err);
+    }
+  };
+
+  const chunkText = (text: string, size: number = 1000) => {
+    const chunks: string[] = [];
+    const words = text.split(/\s+/);
+    let currentChunk = "";
+
+    for (const word of words) {
+      if ((currentChunk + word).length > size && currentChunk.length > 0) {
+        chunks.push(currentChunk.trim());
+        currentChunk = "";
+      }
+      currentChunk += word + " ";
+    }
+    if (currentChunk.trim()) chunks.push(currentChunk.trim());
+    return chunks;
   };
 
   const extractText = async (file: File) => {
@@ -59,14 +91,38 @@ export default function PDFUpload({ onUpload, onRemove }: PDFUploadProps) {
         throw new Error('No text content found in PDF. It might be an image-only scan.');
       }
 
+      setIsExtracting(false);
+      setIsIndexing(true);
+
+      // 1. Clear previous chunks
+      const q = query(collection(db, 'users', uid, 'chunks'));
+      const oldChunks = await getDocs(q);
+      const batch = writeBatch(db);
+      oldChunks.docs.forEach(doc => batch.delete(doc.ref));
+      await batch.commit();
+
+      // 2. Chunk and Index
+      const chunks = chunkText(fullText);
+      for (const chunk of chunks) {
+        const embedding = await generateEmbedding(chunk);
+        await addDoc(collection(db, 'users', uid, 'chunks'), {
+          text: chunk,
+          // @ts-ignore - VectorValue constructor exists in Firestore 11+ but types might be lagging
+          embedding: new VectorValue(embedding),
+          fileName: file.name,
+          timestamp: new Date()
+        });
+      }
+
       onUpload(fullText, file.name);
     } catch (err: any) {
-      console.error('PDF extraction failed:', err);
-      const message = err.message || 'Failed to read PDF. Please try another file.';
+      console.error('PDF processing failed:', err);
+      const message = err.message || 'Failed to process PDF. Please try another file.';
       setError(message.includes('worker') ? 'PDF engine error. Please refresh and try again.' : message);
       setFileName(null);
     } finally {
       setIsExtracting(false);
+      setIsIndexing(false);
     }
   };
 
@@ -86,11 +142,13 @@ export default function PDFUpload({ onUpload, onRemove }: PDFUploadProps) {
     return (
       <div className="pdf-upload-loaded">
         <div className="pdf-upload-icon">
-          {isExtracting ? <Loader2 size={20} className="pdf-spin" /> : <FileText size={20} />}
+          {isExtracting || isIndexing ? <Loader2 size={20} className="pdf-spin" /> : <FileText size={20} />}
         </div>
         <div className="pdf-upload-meta">
           <p>{fileName}</p>
-          <span>{isExtracting ? 'Analyzing module...' : 'Module loaded'}</span>
+          <span>
+            {isExtracting ? 'Reading module...' : isIndexing ? 'Building long-term memory...' : 'Module loaded'}
+          </span>
         </div>
         <button type="button" className="pdf-upload-remove" onClick={handleRemove}>
           <X size={18} />
