@@ -75,9 +75,12 @@ CRITICAL: You MUST use the user's 'Who are you?' info to make these slang terms 
 }
 
 export async function generateEmbedding(text: string) {
-  const ai = new GoogleGenAI({ apiKey: (import.meta as any).env.VITE_GEMINI_API_KEY });
+  const ai = new GoogleGenAI({ 
+    apiKey: (import.meta as any).env.VITE_GEMINI_API_KEY,
+    apiVersion: "v1beta"
+  });
   const result = await ai.models.embedContent({
-    model: "text-embedding-001", // Stabilizing with 001 if newer versions have v1beta access issues
+    model: "text-embedding-004",
     contents: [{ parts: [{ text }] }]
   });
   return result.embeddings[0].values;
@@ -123,7 +126,10 @@ export async function getGeminiResponse(
   bookContext?: ChatBookContext | null,
   attachments?: FileAttachment[]
 ) {
-  const ai = new GoogleGenAI({ apiKey: (import.meta as any).env.VITE_GEMINI_API_KEY });
+  const ai = new GoogleGenAI({ 
+    apiKey: (import.meta as any).env.VITE_GEMINI_API_KEY,
+    apiVersion: "v1beta" 
+  });
   
   const userParts: any[] = [{ text: message }];
   if (attachments && attachments.length > 0) {
@@ -162,7 +168,7 @@ export async function getGeminiResponse(
   }
 
   const response = await ai.models.generateContent({
-    model: "gemini-2.5-flash",
+    model: "gemini-2.0-flash",
     contents: [
       ...history,
       { role: 'user', parts: userParts }
@@ -177,7 +183,10 @@ export async function getGeminiResponse(
 }
 
 export async function getGeminiTTS(text: string) {
-  const ai = new GoogleGenAI({ apiKey: (import.meta as any).env.VITE_GEMINI_API_KEY! });
+  const ai = new GoogleGenAI({ 
+    apiKey: (import.meta as any).env.VITE_GEMINI_API_KEY!,
+    apiVersion: "v1beta"
+  });
   const response = await ai.models.generateContent({
     model: "gemini-2.5-flash-preview-tts",
     contents: [{ parts: [{ text }] }],

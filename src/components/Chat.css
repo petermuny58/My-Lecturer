@@ -201,6 +201,16 @@
   background: rgba(255, 255, 255, 0.12);
 }
 
+.chat-header-btn--danger {
+  border-color: rgba(248, 113, 113, 0.3);
+  color: #f87171;
+}
+
+.chat-header-btn--danger:hover {
+  background: rgba(248, 113, 113, 0.1);
+  border-color: rgba(248, 113, 113, 0.5);
+}
+
 /* Dropdown menu */
 .chat-menu {
   position: absolute;

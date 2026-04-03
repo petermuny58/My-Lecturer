@@ -21,6 +21,7 @@ export default function Chat({ profile, exehEnabled, kopalaEnabled, chatBookCont
   const [messages, setMessages] = useState<Message[]>([]);
   const [inputText, setInputText] = useState('');
   const [pdfContent, setPdfContent] = useState<string | null>(null);
+  const [pdfFileName, setPdfFileName] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [showLiveSession, setShowLiveSession] = useState(false);
   const [showMenu, setShowMenu] = useState(false);
@@ -69,13 +70,37 @@ export default function Chat({ profile, exehEnabled, kopalaEnabled, chatBookCont
       });
       await batch.commit();
 
-      setPdfContent(null);
+      // Also clear module if user confirms full clear
+      await handleClearModule();
+      
       setResetKey((prev) => prev + 1);
       setShowMenu(false);
       setConfirmClear(false);
       onClearBookContext();
     } catch (error) {
       console.error('Failed to clear chat:', error);
+    }
+  };
+
+  const handleClearModule = async () => {
+    try {
+      // 1. Clear Firestore Vector Chunks
+      const q = query(collection(db, 'users', profile.uid, 'chunks'));
+      const snapshot = await getDocs(q);
+      const batch = writeBatch(db);
+      snapshot.docs.forEach(docSnap => batch.delete(docSnap.ref));
+      await batch.commit();
+
+      // 2. Clear IndexedDB persistence
+      const { deleteModule } = await import('../lib/db');
+      await deleteModule(profile.uid);
+
+      // 3. Reset Local State
+      setPdfContent(null);
+      setPdfFileName(null);
+      setResetKey(prev => prev + 1);
+    } catch (error) {
+      console.warn("Failed to clear module:", error);
     }
   };
 
@@ -98,6 +123,23 @@ export default function Chat({ profile, exehEnabled, kopalaEnabled, chatBookCont
       scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
     }
   }, [messages]);
+
+  // Load existing module from IndexedDB on mount
+  useEffect(() => {
+    const loadSavedModule = async () => {
+      try {
+        const { getModule } = await import('../lib/db');
+        const saved = await getModule(profile.uid);
+        if (saved) {
+          setPdfContent(saved.text);
+          setPdfFileName(saved.fileName);
+        }
+      } catch (err) {
+        console.warn("Failed to load saved module:", err);
+      }
+    };
+    loadSavedModule();
+  }, [profile.uid]);
 
   // Proactive Messaging ('AI Speaks First')
   useEffect(() => {
@@ -229,6 +271,19 @@ export default function Chat({ profile, exehEnabled, kopalaEnabled, chatBookCont
             <Mic size={20} />
             <span style={{ fontSize: '11px', fontWeight: 800 }}>LIVE</span>
           </button>
+
+          {pdfContent && (
+            <button 
+              type="button" 
+              className="chat-header-btn chat-header-btn--danger"
+              onClick={handleClearModule}
+              title="Clear Study Module"
+            >
+              <Trash2 size={20} />
+              <span style={{ fontSize: '11px', fontWeight: 800 }}>CLEAR</span>
+            </button>
+          )}
+
           <button
             type="button"
             className="chat-header-btn"
@@ -249,10 +304,25 @@ export default function Chat({ profile, exehEnabled, kopalaEnabled, chatBookCont
                 className="chat-menu"
               >
                 {!confirmClear ? (
-                  <button type="button" onClick={() => setConfirmClear(true)}>
-                    <Trash2 size={16} />
-                    Clear Chat History
-                  </button>
+                  <>
+                    <button type="button" onClick={() => setConfirmClear(true)}>
+                      <Trash2 size={16} />
+                      Clear Chat History
+                    </button>
+                    {pdfContent && (
+                      <button 
+                        type="button" 
+                        onClick={() => {
+                          handleClearModule();
+                          setShowMenu(false);
+                        }}
+                        style={{ color: '#ff4444' }}
+                      >
+                        <X size={16} />
+                        Clear Study Module
+                      </button>
+                    )}
+                  </>
                 ) : (
                   <div className="chat-menu-confirm">
                     <p>Clear everything (messages, books, AI memory)?</p>
@@ -295,12 +365,12 @@ export default function Chat({ profile, exehEnabled, kopalaEnabled, chatBookCont
         <div key={resetKey} className="chat-pdf-slot">
           <PDFUpload
             uid={profile.uid}
-            onUpload={(text, _name) => {
+            onUpload={(text, name) => {
               setPdfContent(text);
+              setPdfFileName(name);
             }}
-            onRemove={() => {
-              setPdfContent(null);
-            }}
+            onRemove={handleClearModule}
+            initialFileName={pdfFileName}
           />
         </div>
 

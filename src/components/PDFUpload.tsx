@@ -15,28 +15,39 @@ interface PDFUploadProps {
   uid: string;
   onUpload: (text: string, fileName: string) => void;
   onRemove: () => void;
+  initialFileName?: string | null;
 }
 
-export default function PDFUpload({ uid, onUpload, onRemove }: PDFUploadProps) {
+export default function PDFUpload({ uid, onUpload, onRemove, initialFileName }: PDFUploadProps) {
   const [isExtracting, setIsExtracting] = useState(false);
   const [isIndexing, setIsIndexing] = useState(false);
-  const [fileName, setFileName] = useState<string | null>(null);
+  const [fileName, setFileName] = useState<string | null>(initialFileName || null);
   const [error, setError] = useState<string | null>(null);
+
+  // Sync initialFileName prop to local state (important for async loading from DB)
+  React.useEffect(() => {
+    if (initialFileName) {
+      setFileName(initialFileName);
+    }
+  }, [initialFileName]);
 
   const handleRemove = async () => {
     setFileName(null);
     setError(null);
     onRemove();
     
-    // Clear old chunks from Firestore
+    // Clear old chunks from Firestore and IndexedDB
     try {
       const q = query(collection(db, 'users', uid, 'chunks'));
       const snapshot = await getDocs(q);
       const batch = writeBatch(db);
       snapshot.docs.forEach(doc => batch.delete(doc.ref));
       await batch.commit();
+
+      const { deleteModule } = await import('../lib/db');
+      await deleteModule(uid);
     } catch (err) {
-      console.warn("Failed to clear chunks:", err);
+      console.warn("Failed to clear module data:", err);
     }
   };
 
@@ -113,6 +124,15 @@ export default function PDFUpload({ uid, onUpload, onRemove }: PDFUploadProps) {
           timestamp: new Date()
         });
       }
+
+      // 3. Save to IndexedDB for persistence
+      const { saveModule } = await import('../lib/db');
+      await saveModule({
+        id: uid,
+        text: fullText,
+        fileName: file.name,
+        timestamp: Date.now()
+      });
 
       onUpload(fullText, file.name);
     } catch (err: any) {
