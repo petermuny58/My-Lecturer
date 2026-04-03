@@ -74,16 +74,42 @@ CRITICAL: You MUST use the user's 'Who are you?' info to make these slang terms 
   }
 }
 
+/**
+ * Helper to retry a function if it hits a 429 (Rate Limit) error.
+ * Exponential backoff starts with a 5-second delay.
+ */
+async function withRetry<T>(fn: () => Promise<T>, maxRetries = 3, initialDelay = 5000): Promise<T> {
+  let retries = 0;
+  while (true) {
+    try {
+      return await fn();
+    } catch (error: any) {
+      const isRateLimit = error.message?.includes('429') || error.status === 429;
+      if (isRateLimit && retries < maxRetries) {
+        retries++;
+        const delay = initialDelay * Math.pow(2, retries - 1);
+        console.warn(`Rate limit (429) hit. Retrying in ${delay / 1000}s... (Attempt ${retries}/${maxRetries})`);
+        await new Promise(resolve => setTimeout(resolve, delay));
+        continue;
+      }
+      throw error;
+    }
+  }
+}
+
 export async function generateEmbedding(text: string) {
   const ai = new GoogleGenAI({ 
     apiKey: (import.meta as any).env.VITE_GEMINI_API_KEY,
     apiVersion: "v1beta"
   });
-  const result = await ai.models.embedContent({
-    model: "text-embedding-004",
-    contents: [{ parts: [{ text }] }]
+  
+  return withRetry(async () => {
+    const result = await ai.models.embedContent({
+      model: "text-embedding-004",
+      contents: [{ parts: [{ text }] }]
+    });
+    return result.embeddings[0].values;
   });
-  return result.embeddings[0].values;
 }
 
 export async function searchRelevantContext(uid: string, queryText: string) {
@@ -166,20 +192,21 @@ export async function getGeminiResponse(
       enhancedContext = vectorContext;
     }
   }
-
-  const response = await ai.models.generateContent({
-    model: "gemini-2.0-flash",
-    contents: [
-      ...history,
-      { role: 'user', parts: userParts }
-    ],
-    config: {
-      systemInstruction: AssistantConfig.getSystemInstruction(profile, exehEnabled, kopalaEnabled, enhancedContext, bookContext),
-      temperature: 0.7,
-    }
+  
+  return withRetry(async () => {
+    const response = await ai.models.generateContent({
+      model: "gemini-2.0-flash", // Updated to stable flash model
+      contents: [
+        ...history,
+        { role: 'user', parts: userParts }
+      ],
+      config: {
+        systemInstruction: AssistantConfig.getSystemInstruction(profile, exehEnabled, kopalaEnabled, enhancedContext, bookContext),
+        temperature: 0.7,
+      }
+    });
+    return response.text;
   });
-
-  return response.text;
 }
 
 export async function getGeminiTTS(text: string) {
@@ -187,18 +214,20 @@ export async function getGeminiTTS(text: string) {
     apiKey: (import.meta as any).env.VITE_GEMINI_API_KEY!,
     apiVersion: "v1beta"
   });
-  const response = await ai.models.generateContent({
-    model: "gemini-2.5-flash-preview-tts",
-    contents: [{ parts: [{ text }] }],
-    config: {
-      responseModalities: [Modality.AUDIO],
-      speechConfig: {
-        voiceConfig: {
-          prebuiltVoiceConfig: { voiceName: 'Kore' },
+  
+  return withRetry(async () => {
+    const response = await ai.models.generateContent({
+      model: "gemini-1.5-flash", // Replaced potentially non-existent preview-tts with stable flash
+      contents: [{ parts: [{ text }] }],
+      config: {
+        responseModalities: [Modality.AUDIO],
+        speechConfig: {
+          voiceConfig: {
+            prebuiltVoiceConfig: { voiceName: 'Puck' }, // Standard voice for flash
+          },
         },
       },
-    },
+    });
+    return response.candidates?.[0]?.content?.parts?.[0]?.inlineData?.data;
   });
-
-  return response.candidates?.[0]?.content?.parts?.[0]?.inlineData?.data;
 }

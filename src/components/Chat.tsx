@@ -126,19 +126,21 @@ export default function Chat({ profile, exehEnabled, kopalaEnabled, chatBookCont
 
   // Load existing module from IndexedDB on mount
   useEffect(() => {
+    let isMounted = true;
     const loadSavedModule = async () => {
       try {
         const { getModule } = await import('../lib/db');
         const saved = await getModule(profile.uid);
-        if (saved) {
+        if (saved && isMounted) {
           setPdfContent(saved.text);
           setPdfFileName(saved.fileName);
         }
       } catch (err) {
-        console.warn("Failed to load saved module:", err);
+        console.warn("Failed to load saved module from IndexedDB:", err);
       }
     };
     loadSavedModule();
+    return () => { isMounted = false; };
   }, [profile.uid]);
 
   // Proactive Messaging ('AI Speaks First')
