@@ -141,10 +141,13 @@ export async function generateEmbedding(text: string) {
 
   return withRetry(() => queueGenerativeRequest(async () => {
     const result = await ai.models.embedContent({
-      model: "text-embedding-004",
-      contents: [{ parts: [{ text }] }]
+      model: "gemini-embedding-001",
+      contents: [{ parts: [{ text }] }],
+      config: {
+        outputDimensionality: 768
+      }
     });
-    return result.embeddings[0].values;
+    return result.embeddings?.[0]?.values || (result as any).embedding?.values;
   }));
 }
 
