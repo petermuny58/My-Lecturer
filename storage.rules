@@ -1,10 +1,23 @@
 rules_version = '2';
 service firebase.storage {
   match /b/{bucket}/o {
-    // PUBLIC ACCESS FOR BETA PHASE
-    // WARNING: Restrict before going to production!
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+
+    // Study modules stored per user.
+    // Example path: users/{uid}/studyModules/{fileName}
+    match /users/{userId}/studyModules/{allPaths=**} {
+      allow read, write: if isOwner(userId);
+    }
+
+    // Deny all other storage paths.
     match /{allPaths=**} {
-      allow read, write: if true;
+      allow read, write: if false;
     }
   }
 }

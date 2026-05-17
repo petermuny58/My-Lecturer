@@ -1,0 +1,16 @@
+# Global Project Rule: Gemma 4 Migration [31B/26B]
+
+## Core Directive
+All AI agents spawned for this workspace MUST utilize **Gemma 4 [31B/26B]** for all phases of reasoning, including:
+1.  **Planning Phase**: Architecture, feature breakdowns, and implementation plans.
+2.  **Execution Phase**: Writing source code, terminal commands, and system scripts.
+3.  **Terminal Interaction**: All command line execution and environment debugging.
+
+## Deprecation & Interception
+-   **Gemini Deprecation**: Use of Gemini models is formally deprecated. Avoid referencing Gemini for any reasoning or code generation task.
+-   **Intercept & Re-route**: If an agent or automated system attempts to fallback to Gemini or another reasoning engine (e.g., GPT, Claude, Llama), it must be intercepted and re-routed to Gemma 4.
+-   **Model-Centric Execution**: Every model call within this workspace should specify Gemma 4 as the target Reasoning Engine.
+
+## Contextual Identity
+-   All agent personas (e.g., "Zambian Lecturer", "Technical Lead") are preserved but their underlying reasoning engine is now powered by Gemma 4.
+-   Maintain highest reasoning fidelity, consistency, and alignment with modern digital trends (2026+).

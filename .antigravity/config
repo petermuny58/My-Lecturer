@@ -1,0 +1,9 @@
+{
+  "reasoning_engine": "Gemma 4 [31B/26B]",
+  "primary_model": "Gemma 4",
+  "deprecated_models": ["Gemini", "GPT", "Claude"],
+  "rules": {
+    "intercept_fallback": true,
+    "enforce_gemma_4": true
+  }
+}

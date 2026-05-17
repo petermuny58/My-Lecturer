@@ -4,7 +4,7 @@ import { X, Mic, MicOff, Loader2, GraduationCap, BrainCircuit } from 'lucide-rea
 import { GoogleGenAI, Modality } from "@google/genai";
 import './LiveSession.css';
 import { UserProfile, ChatBookContext } from '../types';
-import { AssistantConfig } from '../lib/gemini';
+import { AssistantConfig, queueGenerativeRequest } from '../lib/gemini';
 
 interface LiveSessionProps {
   profile: UserProfile;
@@ -34,9 +34,11 @@ export default function LiveSession({ profile, exehEnabled, kopalaEnabled, pdfCo
       setIsConnecting(true);
       setError(null);
 
-      const ai = new GoogleGenAI({ apiKey: (import.meta as any).env.VITE_GEMINI_API_KEY! });
+      const ai = new GoogleGenAI({
+        apiKey: (import.meta as any).env.VITE_GEMINI_API_KEY!
+      });
       
-      const session = await ai.live.connect({
+      const session = await queueGenerativeRequest(() => ai.live.connect({
         model: "gemini-2.0-flash-exp",
         config: {
           responseModalities: [Modality.AUDIO],
@@ -85,7 +87,7 @@ export default function LiveSession({ profile, exehEnabled, kopalaEnabled, pdfCo
             setIsActive(false);
           }
         }
-      });
+      }));
 
       sessionRef.current = session;
     } catch (err) {

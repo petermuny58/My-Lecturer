@@ -1,7 +1,44 @@
+/**
+ * @deprecated THIS MODULE IS DEPRECATED.
+ * All reasoning and model calls are being migrated to the Gemma 4 [31B/26B] reasoning engine.
+ * Please avoid new references to Gemini models.
+ */
+/**
+ * @deprecated THIS MODULE IS DEPRECATED.
+ * All reasoning and model calls are being migrated to the Gemma 4 [31B/26B] reasoning engine.
+ * Please avoid new references to Gemini models.
+ */
 import { GoogleGenAI, Modality } from "@google/genai";
 import { UserProfile, ChatBookContext } from "../types";
 import { db } from "./firebase";
 import { collection, query, getDocs, vector, VectorValue } from "firebase/firestore";
+
+const MIN_REQUEST_INTERVAL_MS = 30_000;
+const RATE_LIMIT_INITIAL_DELAY_MS = 15_000;
+let requestQueue: Promise<void> = Promise.resolve();
+let lastRequestTime = 0;
+
+const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
+
+export function queueGenerativeRequest<T>(operation: () => Promise<T>): Promise<T> {
+  const run = async () => {
+    const now = Date.now();
+    const waitMs = Math.max(0, lastRequestTime + MIN_REQUEST_INTERVAL_MS - now);
+    if (waitMs > 0) {
+      await sleep(waitMs);
+    }
+
+    try {
+      return await operation();
+    } finally {
+      lastRequestTime = Date.now();
+    }
+  };
+
+  const queued = requestQueue.then(run, run);
+  requestQueue = queued.then(() => undefined, () => undefined);
+  return queued;
+}
 
 export class AssistantConfig {
   static getSystemInstruction(profile: UserProfile, exehEnabled: boolean, kopalaEnabled: boolean, pdfContent?: string, bookContext?: ChatBookContext | null) {
@@ -45,7 +82,7 @@ CRITICAL: You MUST use the user's 'Who are you?' info to make these slang terms 
       `
       : '';
 
-    const ragBlock = pdfContent 
+    const ragBlock = pdfContent
       ? `STRICT RULE: You must ONLY use the content provided below to answer questions. If the answer is not in the text, politely say you don't know based on the module, but offer to help with general concepts if they ask.
       
       RETRIEVED CONTEXT FROM MODULE (RAG):
@@ -78,7 +115,7 @@ CRITICAL: You MUST use the user's 'Who are you?' info to make these slang terms 
  * Helper to retry a function if it hits a 429 (Rate Limit) error.
  * Exponential backoff starts with a 5-second delay.
  */
-async function withRetry<T>(fn: () => Promise<T>, maxRetries = 3, initialDelay = 5000): Promise<T> {
+async function withRetry<T>(fn: () => Promise<T>, maxRetries = 3, initialDelay = RATE_LIMIT_INITIAL_DELAY_MS): Promise<T> {
   let retries = 0;
   while (true) {
     try {
@@ -87,9 +124,9 @@ async function withRetry<T>(fn: () => Promise<T>, maxRetries = 3, initialDelay =
       const isRateLimit = error.message?.includes('429') || error.status === 429;
       if (isRateLimit && retries < maxRetries) {
         retries++;
-        const delay = initialDelay * Math.pow(2, retries - 1);
+        const delay = Math.max(initialDelay, initialDelay * Math.pow(2, retries - 1));
         console.warn(`Rate limit (429) hit. Retrying in ${delay / 1000}s... (Attempt ${retries}/${maxRetries})`);
-        await new Promise(resolve => setTimeout(resolve, delay));
+        await sleep(delay);
         continue;
       }
       throw error;
@@ -98,25 +135,24 @@ async function withRetry<T>(fn: () => Promise<T>, maxRetries = 3, initialDelay =
 }
 
 export async function generateEmbedding(text: string) {
-  const ai = new GoogleGenAI({ 
-    apiKey: (import.meta as any).env.VITE_GEMINI_API_KEY,
-    apiVersion: "v1beta"
+  const ai = new GoogleGenAI({
+    apiKey: (import.meta as any).env.VITE_GEMINI_API_KEY
   });
-  
-  return withRetry(async () => {
+
+  return withRetry(() => queueGenerativeRequest(async () => {
     const result = await ai.models.embedContent({
       model: "text-embedding-004",
       contents: [{ parts: [{ text }] }]
     });
     return result.embeddings[0].values;
-  });
+  }));
 }
 
 export async function searchRelevantContext(uid: string, queryText: string) {
   try {
     const embedding = await generateEmbedding(queryText);
     const chunksRef = collection(db, 'users', uid, 'chunks');
-    
+
     // Using vector indexing requires specific Firestore SDK support
     // and findNearest in older versions was part of the 'vector' namespace
     const q = query(
@@ -142,6 +178,8 @@ export interface FileAttachment {
   data: string; // base64 string
 }
 
+/** @deprecated Use Gemma 4 reasoning engine instead. */
+/** @deprecated Use Gemma 4 reasoning engine instead. */
 export async function getGeminiResponse(
   profile: UserProfile,
   message: string,
@@ -152,25 +190,24 @@ export async function getGeminiResponse(
   bookContext?: ChatBookContext | null,
   attachments?: FileAttachment[]
 ) {
-  const ai = new GoogleGenAI({ 
-    apiKey: (import.meta as any).env.VITE_GEMINI_API_KEY,
-    apiVersion: "v1beta" 
+  const ai = new GoogleGenAI({
+    apiKey: (import.meta as any).env.VITE_GEMINI_API_KEY
   });
-  
+
   const userParts: any[] = [{ text: message }];
   if (attachments && attachments.length > 0) {
     attachments.forEach(att => {
       const supportedInlineTypes = [
-        'application/pdf', 
-        'text/plain', 
-        'text/markdown', 
-        'text/javascript', 
+        'application/pdf',
+        'text/plain',
+        'text/markdown',
+        'text/javascript',
         'text/html'
       ];
       const isImage = att.mimeType.startsWith('image/');
       const isVideo = att.mimeType.startsWith('video/');
       const isAudio = att.mimeType.startsWith('audio/');
-      
+
       if (isImage || isVideo || isAudio || supportedInlineTypes.includes(att.mimeType)) {
         userParts.push({
           inlineData: {
@@ -192,8 +229,8 @@ export async function getGeminiResponse(
       enhancedContext = vectorContext;
     }
   }
-  
-  return withRetry(async () => {
+
+  return withRetry(() => queueGenerativeRequest(async () => {
     const response = await ai.models.generateContent({
       model: "gemini-2.0-flash", // Updated to stable flash model
       contents: [
@@ -206,16 +243,17 @@ export async function getGeminiResponse(
       }
     });
     return response.text;
-  });
+  }));
 }
 
+/** @deprecated Use Gemma 4 reasoning engine instead. */
+/** @deprecated Use Gemma 4 reasoning engine instead. */
 export async function getGeminiTTS(text: string) {
-  const ai = new GoogleGenAI({ 
-    apiKey: (import.meta as any).env.VITE_GEMINI_API_KEY!,
-    apiVersion: "v1beta"
+  const ai = new GoogleGenAI({
+    apiKey: (import.meta as any).env.VITE_GEMINI_API_KEY!
   });
-  
-  return withRetry(async () => {
+
+  return withRetry(() => queueGenerativeRequest(async () => {
     const response = await ai.models.generateContent({
       model: "gemini-1.5-flash", // Replaced potentially non-existent preview-tts with stable flash
       contents: [{ parts: [{ text }] }],
@@ -229,5 +267,5 @@ export async function getGeminiTTS(text: string) {
       },
     });
     return response.candidates?.[0]?.content?.parts?.[0]?.inlineData?.data;
-  });
+  }));
 }
