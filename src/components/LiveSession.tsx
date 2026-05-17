@@ -21,7 +21,7 @@ export default function LiveSession({ profile, exehEnabled, kopalaEnabled, pdfCo
   const [isMuted, setIsMuted] = useState(false);
   const [isConnecting, setIsConnecting] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  
+
   const audioContextRef = useRef<AudioContext | null>(null);
   const sessionRef = useRef<any>(null);
   const streamRef = useRef<MediaStream | null>(null);
@@ -37,9 +37,9 @@ export default function LiveSession({ profile, exehEnabled, kopalaEnabled, pdfCo
       const ai = new GoogleGenAI({
         apiKey: (import.meta as any).env.VITE_GEMINI_API_KEY!
       });
-      
+
       const session = await queueGenerativeRequest(() => ai.live.connect({
-        model: "gemini-2.0-flash-exp",
+        model: "gemini-live-2.5-flash-preview",
         config: {
           responseModalities: [Modality.AUDIO],
           speechConfig: {
@@ -55,7 +55,7 @@ export default function LiveSession({ profile, exehEnabled, kopalaEnabled, pdfCo
               audioContextRef.current.resume();
             }
             startMicrophone();
-            
+
             // Proactive AI greeting moved to useEffect to avoid race condition with sessionRef.current
           },
           onmessage: async (message) => {
@@ -116,7 +116,7 @@ export default function LiveSession({ profile, exehEnabled, kopalaEnabled, pdfCo
 
       processor.onaudioprocess = (e) => {
         if (isMuted || !sessionRef.current) return;
-        
+
         const inputData = e.inputBuffer.getChannelData(0);
         const pcmData = new Int16Array(inputData.length);
         for (let i = 0; i < inputData.length; i++) {
@@ -220,14 +220,14 @@ export default function LiveSession({ profile, exehEnabled, kopalaEnabled, pdfCo
             <h1>Digital Lecture Hall</h1>
             <p>How would you like to study today?</p>
           </div>
-          
+
           <div className="live-selection-grid">
             <button className="live-selection-card" onClick={() => setMode('live')}>
               <div className="live-card-icon"><Mic size={32} /></div>
               <h3>Live Chat</h3>
               <p>Speak naturally, and I'll answer your questions in real-time.</p>
             </button>
-            
+
             <button className="live-selection-card live-selection-card--podcast" onClick={() => setMode('podcast')}>
               <div className="live-card-icon"><BrainCircuit size={32} /></div>
               <h3>Podcast Mode</h3>
@@ -258,7 +258,7 @@ export default function LiveSession({ profile, exehEnabled, kopalaEnabled, pdfCo
                 ? 'Waking up your lecturer...'
                 : isMuted
                   ? 'Microphone Muted'
-                  : mode === 'podcast' 
+                  : mode === 'podcast'
                     ? 'AI is leading the session...'
                     : "Speak naturally, I'm listening."}
             </p>

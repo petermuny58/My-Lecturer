@@ -11,7 +11,7 @@
 import { GoogleGenAI, Modality } from "@google/genai";
 import { UserProfile, ChatBookContext } from "../types";
 import { db } from "./firebase";
-import { collection, query, getDocs, vector, VectorValue } from "firebase/firestore";
+import { collection, query, getDocs } from "firebase/firestore";
 
 const MIN_REQUEST_INTERVAL_MS = 30_000;
 const RATE_LIMIT_INITIAL_DELAY_MS = 15_000;
@@ -151,27 +151,48 @@ export async function generateEmbedding(text: string) {
   }));
 }
 
+/**
+ * Compute cosine similarity between two vectors.
+ */
+function cosineSimilarity(a: number[], b: number[]): number {
+  if (a.length !== b.length) return 0;
+  let dot = 0, magA = 0, magB = 0;
+  for (let i = 0; i < a.length; i++) {
+    dot += a[i] * b[i];
+    magA += a[i] * a[i];
+    magB += b[i] * b[i];
+  }
+  const denom = Math.sqrt(magA) * Math.sqrt(magB);
+  return denom === 0 ? 0 : dot / denom;
+}
+
 export async function searchRelevantContext(uid: string, queryText: string) {
   try {
-    const embedding = await generateEmbedding(queryText);
+    const queryEmbedding = await generateEmbedding(queryText);
+    if (!queryEmbedding) return null;
+
     const chunksRef = collection(db, 'users', uid, 'chunks');
+    const snapshot = await getDocs(query(chunksRef));
 
-    // Using vector indexing requires specific Firestore SDK support
-    // and findNearest in older versions was part of the 'vector' namespace
-    const q = query(
-      chunksRef,
-      // @ts-ignore - findNearest exists in newer Firestore but types might be missing
-      vector.findNearest('embedding', new VectorValue(embedding), {
-        limit: 5,
-        distanceMeasure: 'COSINE'
+    if (snapshot.empty) return null;
+
+    // Client-side cosine similarity ranking (findNearest is Admin SDK only)
+    const scored = snapshot.docs
+      .map(doc => {
+        const data = doc.data();
+        const stored = data.embedding;
+        // Firestore VectorValue is stored as { value: number[] } or directly as number[]
+        const vec: number[] = stored?.value ?? stored ?? [];
+        return { text: data.text as string, score: cosineSimilarity(queryEmbedding, vec) };
       })
-    );
+      .filter(item => item.score > 0)
+      .sort((a, b) => b.score - a.score)
+      .slice(0, 5);
 
-    const snapshot = await getDocs(q);
-    const context = snapshot.docs.map(doc => doc.data().text).join('\n\n');
-    return context;
+    if (scored.length === 0) return null;
+    return scored.map(s => s.text).join('\n\n');
   } catch (error) {
-    console.warn("Vector search failed (likely missing index or SDK mismatch):", error);
+    console.warn("Vector search failed:", error);
     return null;
   }
 }
@@ -235,7 +256,7 @@ export async function getGeminiResponse(
 
   return withRetry(() => queueGenerativeRequest(async () => {
     const response = await ai.models.generateContent({
-      model: "gemini-2.0-flash", // Updated to stable flash model
+      model: "gemini-2.5-flash", // Using 2.5-flash for higher free-tier quota
       contents: [
         ...history,
         { role: 'user', parts: userParts }
@@ -258,7 +279,7 @@ export async function getGeminiTTS(text: string) {
 
   return withRetry(() => queueGenerativeRequest(async () => {
     const response = await ai.models.generateContent({
-      model: "gemini-1.5-flash", // Replaced potentially non-existent preview-tts with stable flash
+      model: "gemini-2.5-flash-preview-tts", // TTS-capable model
       contents: [{ parts: [{ text }] }],
       config: {
         responseModalities: [Modality.AUDIO],
