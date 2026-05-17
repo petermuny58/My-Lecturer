@@ -13,3 +13,7 @@ coverage/
 *.njsproj
 *.sln
 *.sw?
+
+# Antigravity Agent Configuration
+.antigravity/
+metadata.json
