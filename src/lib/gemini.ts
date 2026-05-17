@@ -13,8 +13,8 @@ import { UserProfile, ChatBookContext } from "../types";
 import { db } from "./firebase";
 import { collection, query, getDocs } from "firebase/firestore";
 
-const MIN_REQUEST_INTERVAL_MS = 30_000;
-const RATE_LIMIT_INITIAL_DELAY_MS = 15_000;
+const MIN_REQUEST_INTERVAL_MS = 2_000;
+const RATE_LIMIT_INITIAL_DELAY_MS = 5_000;
 let requestQueue: Promise<void> = Promise.resolve();
 let lastRequestTime = 0;
 
