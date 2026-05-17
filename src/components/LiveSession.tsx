@@ -22,12 +22,14 @@ export default function LiveSession({ profile, exehEnabled, kopalaEnabled, pdfCo
   const [isConnecting, setIsConnecting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const audioContextRef = useRef<AudioContext | null>(null);
+  const inputAudioContextRef = useRef<AudioContext | null>(null);
+  const playbackAudioContextRef = useRef<AudioContext | null>(null);
   const sessionRef = useRef<any>(null);
   const streamRef = useRef<MediaStream | null>(null);
   const processorRef = useRef<ScriptProcessorNode | null>(null);
   const audioQueueRef = useRef<Int16Array[]>([]);
   const isPlayingRef = useRef(false);
+  const nextPlayTimeRef = useRef(0);
 
   const startSession = async () => {
     try {
@@ -38,7 +40,12 @@ export default function LiveSession({ profile, exehEnabled, kopalaEnabled, pdfCo
         apiKey: (import.meta as any).env.VITE_GEMINI_API_KEY!
       });
 
-      const session = await queueGenerativeRequest(() => ai.live.connect({
+      // Initialize playback context at 24kHz (Gemini native audio output rate)
+      if (!playbackAudioContextRef.current) {
+        playbackAudioContextRef.current = new AudioContext({ sampleRate: 24000 });
+      }
+
+      const session = await ai.live.connect({
         model: "gemini-2.5-flash-native-audio-preview-12-2025",
         config: {
           responseModalities: [Modality.AUDIO],
@@ -51,12 +58,10 @@ export default function LiveSession({ profile, exehEnabled, kopalaEnabled, pdfCo
           onopen: () => {
             setIsActive(true);
             setIsConnecting(false);
-            if (audioContextRef.current?.state === 'suspended') {
-              audioContextRef.current.resume();
+            if (playbackAudioContextRef.current?.state === 'suspended') {
+              playbackAudioContextRef.current.resume();
             }
             startMicrophone();
-
-            // Proactive AI greeting moved to useEffect to avoid race condition with sessionRef.current
           },
           onmessage: async (message) => {
             if (message.serverContent?.modelTurn?.parts?.[0]?.inlineData?.data) {
@@ -66,19 +71,16 @@ export default function LiveSession({ profile, exehEnabled, kopalaEnabled, pdfCo
               for (let i = 0; i < pcmData.length; i++) {
                 pcmData[i] = (binary.charCodeAt(i * 2) | (binary.charCodeAt(i * 2 + 1) << 8));
               }
-              audioQueueRef.current.push(pcmData);
-              if (!isPlayingRef.current) {
-                playNextInQueue();
-              }
+              scheduleAudioPlayback(pcmData);
             }
             if (message.serverContent?.interrupted) {
               audioQueueRef.current = [];
               isPlayingRef.current = false;
+              nextPlayTimeRef.current = 0;
             }
           },
           onclose: () => {
             cleanup();
-            // Don't call onClose() automatically to prevent modal from vanishing
           },
           onerror: (err) => {
             console.error("Live API Error:", err);
@@ -87,7 +89,7 @@ export default function LiveSession({ profile, exehEnabled, kopalaEnabled, pdfCo
             setIsActive(false);
           }
         }
-      }));
+      });
 
       sessionRef.current = session;
     } catch (err) {
@@ -102,16 +104,17 @@ export default function LiveSession({ profile, exehEnabled, kopalaEnabled, pdfCo
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
       streamRef.current = stream;
 
-      if (!audioContextRef.current) {
-        audioContextRef.current = new AudioContext({ sampleRate: 16000 });
+      // Separate AudioContext for mic input at 16kHz (API input rate)
+      if (!inputAudioContextRef.current) {
+        inputAudioContextRef.current = new AudioContext({ sampleRate: 16000 });
       }
-      const audioContext = audioContextRef.current;
+      const audioContext = inputAudioContextRef.current;
       if (audioContext.state === 'suspended') {
         await audioContext.resume();
       }
 
       const source = audioContext.createMediaStreamSource(stream);
-      const processor = audioContext.createScriptProcessor(4096, 1, 1);
+      const processor = audioContext.createScriptProcessor(2048, 1, 1);
       processorRef.current = processor;
 
       processor.onaudioprocess = (e) => {
@@ -137,33 +140,33 @@ export default function LiveSession({ profile, exehEnabled, kopalaEnabled, pdfCo
     }
   };
 
-  const playNextInQueue = async () => {
-    if (audioQueueRef.current.length === 0 || !audioContextRef.current) {
-      isPlayingRef.current = false;
-      return;
+  // Gapless scheduled playback at 24kHz (Gemini native audio output rate)
+  const scheduleAudioPlayback = (pcmData: Int16Array) => {
+    const audioContext = playbackAudioContextRef.current;
+    if (!audioContext) return;
+
+    if (audioContext.state === 'suspended') {
+      audioContext.resume();
     }
 
-    isPlayingRef.current = true;
-    const pcmData = audioQueueRef.current.shift()!;
     const floatData = new Float32Array(pcmData.length);
     for (let i = 0; i < pcmData.length; i++) {
       floatData[i] = pcmData[i] / 0x7FFF;
     }
 
-    if (!audioContextRef.current) return;
-    const audioContext = audioContextRef.current;
-    if (audioContext.state === 'suspended') {
-      await audioContext.resume();
-    }
-
-    const buffer = audioContext.createBuffer(1, floatData.length, 16000);
+    const buffer = audioContext.createBuffer(1, floatData.length, 24000);
     buffer.getChannelData(0).set(floatData);
 
     const source = audioContext.createBufferSource();
     source.buffer = buffer;
     source.connect(audioContext.destination);
-    source.onended = () => playNextInQueue();
-    source.start();
+
+    // Schedule gaplessly: each chunk starts exactly when the previous one ends
+    const now = audioContext.currentTime;
+    const startTime = Math.max(now, nextPlayTimeRef.current);
+    source.start(startTime);
+    nextPlayTimeRef.current = startTime + buffer.duration;
+    isPlayingRef.current = true;
   };
 
   const cleanup = () => {
@@ -175,14 +178,19 @@ export default function LiveSession({ profile, exehEnabled, kopalaEnabled, pdfCo
       processorRef.current.disconnect();
       processorRef.current = null;
     }
-    if (audioContextRef.current && audioContextRef.current.state !== 'closed') {
-      audioContextRef.current.close();
-      audioContextRef.current = null;
+    if (inputAudioContextRef.current && inputAudioContextRef.current.state !== 'closed') {
+      inputAudioContextRef.current.close();
+      inputAudioContextRef.current = null;
+    }
+    if (playbackAudioContextRef.current && playbackAudioContextRef.current.state !== 'closed') {
+      playbackAudioContextRef.current.close();
+      playbackAudioContextRef.current = null;
     }
     if (sessionRef.current) {
       sessionRef.current.close();
       sessionRef.current = null;
     }
+    nextPlayTimeRef.current = 0;
     setIsActive(false);
   };
 
