@@ -1,6 +1,7 @@
 import React, { useState, useCallback, useEffect, useRef } from 'react';
 import { X, BookOpen, Download, MessageCircle, Search, Sparkles } from 'lucide-react';
 import type { ChatBookContext } from '../types';
+import { FALLBACK_BOOKS } from '../lib/fallbackBooks';
 import './Library.css';
 
 export interface GoogleBookVolume {
@@ -107,18 +108,46 @@ export default function Library({ onAddToAiChat }: LibraryProps) {
     setLoading(true);
     setError(null);
     try {
-      const url = `https://www.googleapis.com/books/v1/volumes?q=${encodeURIComponent(trimmed)}&maxResults=${maxResults}&orderBy=relevance&printType=books`;
+      const apiKey = (import.meta as any).env.VITE_GOOGLE_BOOKS_API_KEY;
+      const apiKeyQuery = apiKey ? `&key=${apiKey}` : '';
+      const url = `https://www.googleapis.com/books/v1/volumes?q=${encodeURIComponent(trimmed)}&maxResults=${maxResults}&orderBy=relevance&printType=books${apiKeyQuery}`;
+      
       const res = await fetch(url);
-      if (!res.ok) throw new Error('Search failed. Try again.');
+      if (!res.ok) {
+        throw new Error(`Search failed with status: ${res.status}`);
+      }
       const data: VolumesResponse = await res.json();
       setResults(data.items ?? []);
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'Something went wrong.');
-      setResults([]);
+      console.warn("Google Books API error, switching to fallback database:", e);
+      
+      // Fallback logic
+      let fallbackList: any[] = [];
+      const queryLower = trimmed.toLowerCase();
+      
+      // If the search matches a known category query or starts with subject:, try to match the active category first
+      const matchedCategory = CATEGORIES.find(c => c.query.toLowerCase().includes(queryLower) || queryLower.includes(c.id));
+      const targetCatId = matchedCategory ? matchedCategory.id : activeCategory;
+      
+      if (FALLBACK_BOOKS[targetCatId]) {
+        fallbackList = FALLBACK_BOOKS[targetCatId];
+      } else {
+        // Try searching inside fallback books
+        const allFallbacks = Object.values(FALLBACK_BOOKS).flat();
+        const searchMatches = allFallbacks.filter(book => 
+          book.volumeInfo.title.toLowerCase().includes(queryLower) ||
+          book.volumeInfo.description?.toLowerCase().includes(queryLower) ||
+          book.volumeInfo.authors?.some(a => a.toLowerCase().includes(queryLower))
+        );
+        fallbackList = searchMatches.length > 0 ? searchMatches : FALLBACK_BOOKS['all'];
+      }
+      
+      setResults(fallbackList as GoogleBookVolume[]);
+      setError("Rate limit reached. Showing curated offline textbooks for your category instead!");
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [activeCategory]);
 
   /* ── Load featured / category books on mount & category change ── */
   useEffect(() => {
