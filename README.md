@@ -1,10 +1,10 @@
-# 🎓 My Lecturer
+#  My Lecturer
 
 An AI-powered academic tutor designed to guide students with personalized support, slang confluences, and real-time interactive lectures.
 
 ---
 
-## 🚀 Running the Project Locally
+##  Running the Project Locally
 
 Follow these steps to set up and run the application on your local machine:
 
