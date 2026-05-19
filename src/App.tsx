@@ -24,6 +24,9 @@ export default function App() {
   const [chatBookContext, setChatBookContext] = useState<ChatBookContext | null>(null);
   const [isProfileOpen, setIsProfileOpen] = useState(false);
 
+  const [username, setUsername] = useState('');
+  const [password, setPassword] = useState('');
+
   const handleSignIn = async () => {
     setAuthError(null);
     try {
@@ -38,8 +41,58 @@ export default function App() {
     }
   };
 
+  const handleCredentialsLogin = (e: React.FormEvent) => {
+    e.preventDefault();
+    setAuthError(null);
+    if (username.trim().toLowerCase() === 'admin' && password === '0000') {
+      localStorage.setItem('isAdminLoggedIn', 'true');
+      setUser({ uid: 'admin', email: 'admin@mylecturer.com', displayName: 'Admin' });
+      setProfile({
+        uid: 'admin',
+        university: 'University of Zambia (UNZA)',
+        major: 'Computer Science',
+        vibe: 'Local/Slang',
+        displayName: 'Admin User',
+        email: 'admin@mylecturer.com',
+        createdAt: new Date().toISOString()
+      });
+    } else {
+      setAuthError('Incorrect password. Standard student accounts must sign in using Google.');
+    }
+  };
+
+  const handleSignOut = async () => {
+    setIsProfileOpen(false);
+    localStorage.removeItem('isAdminLoggedIn');
+    setUser(null);
+    setProfile(null);
+    try {
+      await auth.signOut();
+    } catch (err) {
+      console.error('Failed to sign out:', err);
+    }
+  };
+
   useEffect(() => {
+    // Check if admin is logged in locally to bypass Firebase auth check
+    const isAdmin = localStorage.getItem('isAdminLoggedIn') === 'true';
+    if (isAdmin) {
+      setUser({ uid: 'admin', email: 'admin@mylecturer.com', displayName: 'Admin' });
+      setProfile({
+        uid: 'admin',
+        university: 'University of Zambia (UNZA)',
+        major: 'Computer Science',
+        vibe: 'Local/Slang',
+        displayName: 'Admin User',
+        email: 'admin@mylecturer.com',
+        createdAt: new Date().toISOString()
+      });
+      setLoading(false);
+      return;
+    }
+
     const unsubscribe = onAuthStateChanged(auth, async (u) => {
+      if (localStorage.getItem('isAdminLoggedIn') === 'true') return;
       setUser(u);
       if (u) {
         const docRef = doc(db, 'users', u.uid);
@@ -74,6 +127,42 @@ export default function App() {
         <p>Your personalized AI tutor with that Zed Spice. 🇿🇲</p>
 
         {authError && <div className="app-auth-error">{authError}</div>}
+
+        <form onSubmit={handleCredentialsLogin} className="app-auth-card">
+          <div className="app-auth-input-group">
+            <label htmlFor="username-input">Email or Username</label>
+            <input
+              id="username-input"
+              type="text"
+              className="app-auth-input"
+              placeholder="e.g. admin"
+              value={username}
+              onChange={(e) => setUsername(e.target.value)}
+              required
+            />
+          </div>
+
+          <div className="app-auth-input-group">
+            <label htmlFor="password-input">Password</label>
+            <input
+              id="password-input"
+              type="password"
+              className="app-auth-input"
+              placeholder="••••"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              required
+            />
+          </div>
+
+          <button type="submit" className="app-auth-submit-btn">
+            Log In
+          </button>
+        </form>
+
+        <div className="app-auth-divider">
+          <span>OR</span>
+        </div>
 
         <button type="button" onClick={handleSignIn} className="app-auth-btn">
           <LogIn size={24} />
@@ -131,6 +220,7 @@ export default function App() {
         onExehChange={(val) => { setExehEnabled(val); if(val) setKopalaEnabled(false); }}
         kopalaEnabled={kopalaEnabled}
         onKopalaChange={(val) => { setKopalaEnabled(val); if(val) setExehEnabled(false); }}
+        onSignOut={handleSignOut}
       />
 
       <div className="app-main">{renderContent()}</div>

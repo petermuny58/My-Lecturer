@@ -60,7 +60,7 @@
 
 .app-auth-btn {
   width: 100%;
-  max-width: 20rem;
+  max-width: 22rem;
   padding: 1rem 1.25rem;
   background: rgba(255, 255, 255, 0.95);
   color: #ea580c;
@@ -83,6 +83,103 @@
 
 .app-auth-btn:active {
   transform: scale(0.98);
+}
+
+.app-auth-card {
+  width: 100%;
+  max-width: 22rem;
+  padding: 1.75rem;
+  background: rgba(255, 255, 255, 0.08);
+  backdrop-filter: var(--glass-blur);
+  -webkit-backdrop-filter: var(--glass-blur);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 1.5rem;
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.25);
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}
+
+.app-auth-input-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  text-align: left;
+}
+
+.app-auth-input-group label {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.9);
+}
+
+.app-auth-input {
+  width: 100%;
+  padding: 0.8rem 1rem;
+  background: rgba(255, 255, 255, 0.07);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 0.75rem;
+  color: #fff;
+  font-size: 1rem;
+  transition: border-color 0.2s, background-color 0.2s, box-shadow 0.2s;
+  outline: none;
+}
+
+.app-auth-input::placeholder {
+  color: rgba(255, 255, 255, 0.35);
+}
+
+.app-auth-input:focus {
+  background: rgba(255, 255, 255, 0.12);
+  border-color: #fff;
+  box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.15);
+}
+
+.app-auth-submit-btn {
+  width: 100%;
+  padding: 0.85rem;
+  background: #fff;
+  color: #ea580c;
+  border: none;
+  border-radius: 0.75rem;
+  font-weight: 700;
+  font-size: 1rem;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  transition: background 0.2s, transform 0.15s, box-shadow 0.2s;
+}
+
+.app-auth-submit-btn:hover {
+  background: #fff7ed;
+  transform: translateY(-1px);
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.15);
+}
+
+.app-auth-submit-btn:active {
+  transform: scale(0.98);
+}
+
+.app-auth-divider {
+  display: flex;
+  align-items: center;
+  width: 100%;
+  max-width: 22rem;
+  margin: 1rem 0;
+  color: rgba(255, 255, 255, 0.65);
+  font-size: 0.8rem;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+}
+
+.app-auth-divider::before,
+.app-auth-divider::after {
+  content: "";
+  flex: 1;
+  height: 1px;
+  background: rgba(255, 255, 255, 0.2);
+}
+
+.app-auth-divider span {
+  padding: 0 0.75rem;
 }
 
 /* Loading spinner */

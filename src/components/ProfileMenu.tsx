@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { X, Globe, User, BookOpen, Flame } from 'lucide-react';
+import { X, Globe, User, BookOpen, Flame, LogOut } from 'lucide-react';
 import './ProfileMenu.css';
 
 interface ProfileMenuProps {
@@ -9,11 +9,12 @@ interface ProfileMenuProps {
   onExehChange: (on: boolean) => void;
   kopalaEnabled: boolean;
   onKopalaChange: (on: boolean) => void;
+  onSignOut: () => void;
 }
 
 const LANGUAGES = ['English', 'Chinyanja', 'Ichibemba', 'Lozi', 'Chitonga'];
 
-export default function ProfileMenu({ isOpen, onClose, exehEnabled, onExehChange, kopalaEnabled, onKopalaChange }: ProfileMenuProps) {
+export default function ProfileMenu({ isOpen, onClose, exehEnabled, onExehChange, kopalaEnabled, onKopalaChange, onSignOut }: ProfileMenuProps) {
   const [persona, setPersona] = useState(() => localStorage.getItem('userPersona') || '');
   const [language, setLanguage] = useState(() => localStorage.getItem('userLanguage') || 'English');
 
@@ -119,6 +120,11 @@ export default function ProfileMenu({ isOpen, onClose, exehEnabled, onExehChange
               </label>
             </div>
           </section>
+
+          <button type="button" className="profile-logout-btn" onClick={onSignOut}>
+            <LogOut size={18} />
+            Sign Out
+          </button>
         </div>
       </div>
     </div>

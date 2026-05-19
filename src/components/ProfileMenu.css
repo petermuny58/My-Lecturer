@@ -224,3 +224,28 @@
     transform: translateX(0);
   }
 }
+
+.profile-logout-btn {
+  margin-top: 1rem;
+  padding: 0.85rem 1rem;
+  background: rgba(239, 68, 68, 0.1);
+  color: #ef4444;
+  border: 1px solid rgba(239, 68, 68, 0.2);
+  border-radius: 12px;
+  font-weight: 700;
+  font-size: 0.95rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  transition: background 0.2s, transform 0.1s;
+  width: 100%;
+}
+
+.profile-logout-btn:hover {
+  background: rgba(239, 68, 68, 0.18);
+}
+
+.profile-logout-btn:active {
+  transform: scale(0.98);
+}
