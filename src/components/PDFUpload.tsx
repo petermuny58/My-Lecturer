@@ -3,6 +3,7 @@ import { useDropzone } from 'react-dropzone';
 import './PDFUpload.css';
 import { FileUp, FileText, X, Loader2, BrainCircuit } from 'lucide-react';
 import * as pdfjsLib from 'pdfjs-dist';
+import JSZip from 'jszip';
 import { db } from '../lib/firebase';
 import { collection, addDoc, query, getDocs, deleteDoc, writeBatch, VectorValue } from 'firebase/firestore';
 import { generateEmbedding, describeStudyMedia } from '../lib/gemini';
@@ -67,9 +68,12 @@ export default function PDFUpload({ uid, onUpload, onRemove, initialFileName }: 
     return chunks;
   };
 
-  const extractText = async (file: File) => {
+  const extractText = async (
+    file: File, 
+    types: { isPDF: boolean; isPPTX: boolean; isPPT: boolean; isImage: boolean; isVideo: boolean }
+  ) => {
     if (file.size > 10 * 1024 * 1024) {
-      setError('File is too large. Please upload a PDF smaller than 10MB.');
+      setError('File is too large. Please upload a file smaller than 10MB.');
       return;
     }
 
@@ -79,7 +83,7 @@ export default function PDFUpload({ uid, onUpload, onRemove, initialFileName }: 
     try {
       let fullText = '';
 
-      if (file.type === 'application/pdf' || file.name.toLowerCase().endsWith('.pdf')) {
+      if (types.isPDF) {
         const arrayBuffer = await file.arrayBuffer();
         const loadingTask = pdfjsLib.getDocument({
           data: arrayBuffer,
@@ -99,7 +103,29 @@ export default function PDFUpload({ uid, onUpload, onRemove, initialFileName }: 
             console.warn(`Failed to extract text from page ${i}:`, pageError);
           }
         }
-      } else if (file.type.startsWith('image/') || file.type.startsWith('video/')) {
+      } else if (types.isPPTX) {
+        const arrayBuffer = await file.arrayBuffer();
+        const zip = await JSZip.loadAsync(arrayBuffer);
+        const slideFiles = Object.keys(zip.files).filter(
+          name => name.startsWith('ppt/slides/slide') && name.endsWith('.xml')
+        );
+        slideFiles.sort((a, b) => {
+          const numA = parseInt(a.replace(/[^0-9]/g, ''), 10);
+          const numB = parseInt(b.replace(/[^0-9]/g, ''), 10);
+          return numA - numB;
+        });
+        
+        for (const slideFile of slideFiles) {
+          const xmlText = await zip.files[slideFile].async('string');
+          const parser = new DOMParser();
+          const doc = parser.parseFromString(xmlText, 'application/xml');
+          const tElements = doc.getElementsByTagName('a:t');
+          const slideContent = Array.from(tElements).map(el => el.textContent || '').join(' ');
+          fullText += `[Slide] ${slideContent}\n\n`;
+        }
+      } else if (types.isPPT) {
+        throw new Error('Older .ppt format is not supported. Please save your presentation as .pptx and upload again.');
+      } else if (types.isImage || types.isVideo) {
         const base64Data = await new Promise<string>((resolve, reject) => {
           const reader = new FileReader();
           reader.readAsDataURL(file);
@@ -107,9 +133,10 @@ export default function PDFUpload({ uid, onUpload, onRemove, initialFileName }: 
           reader.onerror = error => reject(error);
         });
         
-        fullText = await describeStudyMedia(base64Data, file.type, file.name) || '';
+        const mime = file.type || (types.isImage ? 'image/jpeg' : 'video/mp4');
+        fullText = await describeStudyMedia(base64Data, mime, file.name) || '';
       } else {
-        throw new Error('Unsupported file type. Please upload a PDF, image, or video.');
+        throw new Error('Unsupported file type. Please upload a PDF, PowerPoint, image, or video.');
       }
 
       if (!fullText.trim()) {
@@ -160,9 +187,34 @@ export default function PDFUpload({ uid, onUpload, onRemove, initialFileName }: 
     }
   };
 
-  const onDrop = useCallback((acceptedFiles: File[]) => {
+  const onDrop = useCallback((acceptedFiles: File[], fileRejections: any[]) => {
+    let fileToProcess: File | null = null;
+
     if (acceptedFiles.length > 0) {
-      extractText(acceptedFiles[0]);
+      fileToProcess = acceptedFiles[0];
+    } else if (fileRejections.length > 0) {
+      // Mobile fallback: check extension of rejected files if MIME type mapping failed
+      const rejectedFile = fileRejections[0].file;
+      const ext = rejectedFile.name.split('.').pop()?.toLowerCase();
+      const validExtensions = ['pdf', 'pptx', 'ppt', 'png', 'jpg', 'jpeg', 'gif', 'webp', 'mp4', 'mov', 'webm'];
+      if (ext && validExtensions.includes(ext)) {
+        fileToProcess = rejectedFile;
+      } else {
+        const errorMsg = fileRejections[0].errors.map((e: any) => e.message).join(', ');
+        setError(`Upload failed: ${errorMsg}`);
+        return;
+      }
+    }
+
+    if (fileToProcess) {
+      const ext = fileToProcess.name.split('.').pop()?.toLowerCase();
+      const isPDF = fileToProcess.type === 'application/pdf' || ext === 'pdf';
+      const isPPTX = fileToProcess.type === 'application/vnd.openxmlformats-officedocument.presentationml.presentation' || ext === 'pptx';
+      const isPPT = fileToProcess.type === 'application/vnd.ms-powerpoint' || ext === 'ppt';
+      const isImage = fileToProcess.type.startsWith('image/') || ['png', 'jpg', 'jpeg', 'gif', 'webp'].includes(ext || '');
+      const isVideo = fileToProcess.type.startsWith('video/') || ['mp4', 'mov', 'webm'].includes(ext || '');
+
+      extractText(fileToProcess, { isPDF, isPPTX, isPPT, isImage, isVideo });
     }
   }, []);
 
@@ -171,7 +223,9 @@ export default function PDFUpload({ uid, onUpload, onRemove, initialFileName }: 
     accept: { 
       'application/pdf': ['.pdf'],
       'image/*': ['.png', '.jpg', '.jpeg', '.gif', '.webp'],
-      'video/*': ['.mp4', '.mov', '.webm']
+      'video/*': ['.mp4', '.mov', '.webm'],
+      'application/vnd.openxmlformats-officedocument.presentationml.presentation': ['.pptx'],
+      'application/vnd.ms-powerpoint': ['.ppt']
     },
     multiple: false,
   } as any);
@@ -207,7 +261,7 @@ export default function PDFUpload({ uid, onUpload, onRemove, initialFileName }: 
         </div>
         <div style={{ textAlign: 'center' }}>
           <h3>Upload Study Module</h3>
-          <p>PDF, Images, Videos. Max 10MB.</p>
+          <p>PDF, PPTX, Images, Videos. Max 10MB.</p>
         </div>
       </div>
       {error && <p className="pdf-upload-error">{error}</p>}

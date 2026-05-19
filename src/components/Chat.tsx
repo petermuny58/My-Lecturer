@@ -442,13 +442,19 @@ export default function Chat({ profile, exehEnabled, kopalaEnabled, chatBookCont
             id="chat-file-upload"
             ref={fileInputRef} 
             onChange={handleFileChange} 
-            style={{ display: 'none' }} 
+            style={{ position: 'absolute', width: '1px', height: '1px', padding: 0, margin: '-1px', overflow: 'hidden', clip: 'rect(0, 0, 0, 0)', border: 0 }} 
             multiple
             accept="image/*,video/*,.pdf,.ppt,.pptx"
           />
-          <label htmlFor="chat-file-upload" className="chat-attach" aria-label="Attach" style={{ cursor: 'pointer' }}>
+          <button 
+            type="button"
+            className="chat-attach" 
+            aria-label="Attach" 
+            style={{ cursor: 'pointer', background: 'none', border: 'none', padding: 0 }}
+            onClick={() => fileInputRef.current?.click()}
+          >
             <Paperclip size={24} />
-          </label>
+          </button>
           <div className="chat-input-wrap">
             <input
               type="text"
