@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { motion } from 'motion/react';
-import { X, Mic, MicOff, Loader2, GraduationCap, BrainCircuit } from 'lucide-react';
+import { X, Mic, MicOff, Loader2, BrainCircuit } from 'lucide-react';
 import { GoogleGenAI, Modality } from "@google/genai";
 import './LiveSession.css';
 import { UserProfile, ChatBookContext } from '../types';
@@ -224,7 +224,7 @@ export default function LiveSession({ profile, exehEnabled, kopalaEnabled, pdfCo
       {mode === 'selection' ? (
         <div className="live-selection-screen">
           <div className="live-selection-header">
-            <GraduationCap size={48} className="live-selection-icon" />
+            <img src="/logo.png" alt="Logo" className="live-selection-icon" style={{ borderRadius: '12px', width: '48px', height: '48px', objectFit: 'cover', margin: '0 auto 1rem' }} />
             <h1>Digital Lecture Hall</h1>
             <p>How would you like to study today?</p>
           </div>
@@ -254,8 +254,8 @@ export default function LiveSession({ profile, exehEnabled, kopalaEnabled, pdfCo
               transition={{ repeat: Infinity, duration: 2 }}
               className="live-session-pulse"
             />
-            <div className="live-session-avatar">
-              <GraduationCap size={80} className="live-session-cap" />
+            <div className="live-session-avatar" style={{ overflow: 'hidden', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <img src="/logo.png" alt="Logo" className="live-session-cap" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
             </div>
           </div>
 

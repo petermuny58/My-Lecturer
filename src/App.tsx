@@ -7,7 +7,7 @@ import Onboarding from './components/Onboarding';
 import Chat from './components/Chat';
 import Home from './components/Home';
 import Library from './components/Library';
-import { GraduationCap, LogIn, Loader2, Home as HomeIcon, BookOpen, MessageSquare, User } from 'lucide-react';
+import { LogIn, Loader2, Home as HomeIcon, BookOpen, MessageSquare, User } from 'lucide-react';
 import './App.css';
 import ProfileMenu from './components/ProfileMenu';
 
@@ -121,7 +121,7 @@ export default function App() {
     return (
       <div className="app-auth">
         <div className="app-auth-logo">
-          <GraduationCap size={56} />
+          <img src="/logo.png" alt="My Lecturer" style={{ width: '80%', height: '80%', objectFit: 'contain' }} />
         </div>
         <h1>My Lecturer</h1>
         <p>Your personalized AI tutor with that Zed Spice. 🇿🇲</p>

@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { Send, Mic, MoreVertical, Paperclip, GraduationCap, Trash2, X } from 'lucide-react';
+import { Send, Mic, MoreVertical, Paperclip, Trash2, X } from 'lucide-react';
 import { UserProfile, Message, ChatBookContext } from '../types';
 import { db } from '../lib/firebase';
 import { collection, addDoc, query, orderBy, onSnapshot, serverTimestamp, getDocs, deleteDoc, writeBatch } from 'firebase/firestore';
@@ -236,8 +236,8 @@ export default function Chat({ profile, exehEnabled, kopalaEnabled, chatBookCont
     <div className="chat-root">
       <div className="chat-header">
         <div className="chat-header-main">
-          <div className="chat-header-icon">
-            <GraduationCap size={24} />
+          <div className="chat-header-icon" style={{ overflow: 'hidden' }}>
+            <img src="/logo.png" alt="Logo" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
           </div>
           <div>
             <h2>My Lecturer ({profile.vibe})</h2>
@@ -354,8 +354,8 @@ export default function Chat({ profile, exehEnabled, kopalaEnabled, chatBookCont
 
         {messages.length === 0 && (
           <div className="chat-empty">
-            <div className="chat-empty-icon">
-              <GraduationCap size={40} />
+            <div className="chat-empty-icon" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <img src="/logo.png" alt="Logo" style={{ width: '56px', height: '56px', borderRadius: '12px' }} />
             </div>
             <p>Welcome! Ask a question or upload a study module to begin.</p>
           </div>
