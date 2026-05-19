@@ -5,7 +5,7 @@ import { FileUp, FileText, X, Loader2, BrainCircuit } from 'lucide-react';
 import * as pdfjsLib from 'pdfjs-dist';
 import { db } from '../lib/firebase';
 import { collection, addDoc, query, getDocs, deleteDoc, writeBatch, VectorValue } from 'firebase/firestore';
-import { generateEmbedding } from '../lib/gemini';
+import { generateEmbedding, describeStudyMedia } from '../lib/gemini';
 // @ts-ignore
 import pdfWorker from 'pdfjs-dist/build/pdf.worker.mjs?url';
 
@@ -77,29 +77,43 @@ export default function PDFUpload({ uid, onUpload, onRemove, initialFileName }: 
     setFileName(file.name);
     setError(null);
     try {
-      const arrayBuffer = await file.arrayBuffer();
-      const loadingTask = pdfjsLib.getDocument({
-        data: arrayBuffer,
-        useWorkerFetch: true,
-        isEvalSupported: false,
-      });
-
-      const pdf = await loadingTask.promise;
       let fullText = '';
 
-      for (let i = 1; i <= pdf.numPages; i++) {
-        try {
-          const page = await pdf.getPage(i);
-          const textContent = await page.getTextContent();
-          const pageText = textContent.items.map((item: any) => item.str).join(' ');
-          fullText += pageText + '\n';
-        } catch (pageError) {
-          console.warn(`Failed to extract text from page ${i}:`, pageError);
+      if (file.type === 'application/pdf' || file.name.toLowerCase().endsWith('.pdf')) {
+        const arrayBuffer = await file.arrayBuffer();
+        const loadingTask = pdfjsLib.getDocument({
+          data: arrayBuffer,
+          useWorkerFetch: true,
+          isEvalSupported: false,
+        });
+
+        const pdf = await loadingTask.promise;
+
+        for (let i = 1; i <= pdf.numPages; i++) {
+          try {
+            const page = await pdf.getPage(i);
+            const textContent = await page.getTextContent();
+            const pageText = textContent.items.map((item: any) => item.str).join(' ');
+            fullText += pageText + '\n';
+          } catch (pageError) {
+            console.warn(`Failed to extract text from page ${i}:`, pageError);
+          }
         }
+      } else if (file.type.startsWith('image/') || file.type.startsWith('video/')) {
+        const base64Data = await new Promise<string>((resolve, reject) => {
+          const reader = new FileReader();
+          reader.readAsDataURL(file);
+          reader.onload = () => resolve((reader.result as string).split(',')[1]);
+          reader.onerror = error => reject(error);
+        });
+        
+        fullText = await describeStudyMedia(base64Data, file.type, file.name) || '';
+      } else {
+        throw new Error('Unsupported file type. Please upload a PDF, image, or video.');
       }
 
       if (!fullText.trim()) {
-        throw new Error('No text content found in PDF. It might be an image-only scan.');
+        throw new Error('No text content found or could not be generated for this file.');
       }
 
       setIsExtracting(false);
@@ -154,7 +168,11 @@ export default function PDFUpload({ uid, onUpload, onRemove, initialFileName }: 
 
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
     onDrop,
-    accept: { 'application/pdf': ['.pdf'] },
+    accept: { 
+      'application/pdf': ['.pdf'],
+      'image/*': ['.png', '.jpg', '.jpeg', '.gif', '.webp'],
+      'video/*': ['.mp4', '.mov', '.webm']
+    },
     multiple: false,
   } as any);
 
@@ -189,7 +207,7 @@ export default function PDFUpload({ uid, onUpload, onRemove, initialFileName }: 
         </div>
         <div style={{ textAlign: 'center' }}>
           <h3>Upload Study Module</h3>
-          <p>PDF only. Max 10MB.</p>
+          <p>PDF, Images, Videos. Max 10MB.</p>
         </div>
       </div>
       {error && <p className="pdf-upload-error">{error}</p>}

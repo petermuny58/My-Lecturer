@@ -293,3 +293,25 @@ export async function getGeminiTTS(text: string) {
     return response.candidates?.[0]?.content?.parts?.[0]?.inlineData?.data;
   }));
 }
+
+export async function describeStudyMedia(base64Data: string, mimeType: string, fileName: string) {
+  const ai = new GoogleGenAI({
+    apiKey: (import.meta as any).env.VITE_GEMINI_API_KEY
+  });
+
+  return withRetry(() => queueGenerativeRequest(async () => {
+    const response = await ai.models.generateContent({
+      model: "gemini-2.5-flash",
+      contents: [
+        {
+          role: 'user',
+          parts: [
+            { inlineData: { data: base64Data, mimeType } },
+            { text: `Please provide a detailed, comprehensive transcription and description of this file named "${fileName}". Extract all visible text, describe all key visual elements, and summarize its educational content so it can be used as a study module.` }
+          ]
+        }
+      ]
+    });
+    return response.text;
+  }));
+}

@@ -238,6 +238,9 @@ export default function Chat({ profile, exehEnabled, kopalaEnabled, chatBookCont
           else if (ext === 'docx') inferredType = 'application/vnd.openxmlformats-officedocument.wordprocessingml.document';
           else if (ext === 'png') inferredType = 'image/png';
           else if (ext === 'jpg' || ext === 'jpeg') inferredType = 'image/jpeg';
+          else if (ext === 'mp4') inferredType = 'video/mp4';
+          else if (ext === 'mov') inferredType = 'video/quicktime';
+          else if (ext === 'webm') inferredType = 'video/webm';
           else inferredType = 'application/octet-stream';
         }
 
@@ -441,7 +444,7 @@ export default function Chat({ profile, exehEnabled, kopalaEnabled, chatBookCont
             onChange={handleFileChange} 
             style={{ display: 'none' }} 
             multiple
-            accept="image/*,.pdf,.ppt,.pptx"
+            accept="image/*,video/*,.pdf,.ppt,.pptx"
           />
           <label htmlFor="chat-file-upload" className="chat-attach" aria-label="Attach" style={{ cursor: 'pointer' }}>
             <Paperclip size={24} />
