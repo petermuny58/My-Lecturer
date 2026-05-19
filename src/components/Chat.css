@@ -23,6 +23,8 @@
    Chat Header — Frosted Glass
 ══════════════════════════════ */
 .chat-header {
+  position: relative;
+  z-index: 60;
   flex-shrink: 0;
   padding: 0.9rem 1rem;
   display: flex;
