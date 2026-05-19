@@ -143,34 +143,7 @@ export default function Chat({ profile, exehEnabled, kopalaEnabled, chatBookCont
     return () => { isMounted = false; };
   }, [profile.uid]);
 
-  // Proactive Messaging ('AI Speaks First')
-  useEffect(() => {
-    if (messages.length === 0 && !isLoading) {
-      const initGreeting = async () => {
-        setIsLoading(true);
-        let greetingText = "Hello! Welcome to your digital lecture hall. What would you like to study today?";
-        if (exehEnabled) {
-          greetingText = "Laka? What are we working on today my guy?";
-        } else if (kopalaEnabled) {
-          greetingText = "Mudala, what are we studying? Let's get to it sharp sharp.";
-        }
-        
-        try {
-          await addDoc(collection(db, 'users', profile.uid, 'sessions', 'default', 'messages'), {
-            text: greetingText,
-            sender: 'ai',
-            timestamp: serverTimestamp(),
-          });
-        } catch (error) {
-          console.error('Failed to send proactive message:', error);
-        } finally {
-          setIsLoading(false);
-        }
-      };
-      
-      initGreeting();
-    }
-  }, [messages.length, exehEnabled, kopalaEnabled, profile.uid]);
+
 
   const handleSend = async () => {
     if ((!inputText.trim() && attachments.length === 0) || isLoading) return;
@@ -384,7 +357,7 @@ export default function Chat({ profile, exehEnabled, kopalaEnabled, chatBookCont
             <div className="chat-empty-icon">
               <GraduationCap size={40} />
             </div>
-            <p>Gathering your course materials...</p>
+            <p>Welcome! Ask a question or upload a study module to begin.</p>
           </div>
         )}
 
