@@ -6,6 +6,29 @@ import './LiveSession.css';
 import { UserProfile, ChatBookContext } from '../types';
 import { AssistantConfig, queueGenerativeRequest } from '../lib/gemini';
 
+const PODCAST_GREETINGS = [
+  "Please introduce yourself warmly as my lecturer, outline what we will cover today, and ask if I'd like you to start explaining the study material.",
+  "Pretend we are hosting a popular radio educational talk show. Start the session with a high-energy welcome, explain your role as my lecturer, and ask me if I'm ready to dive into the study module.",
+  "Start this session by posing an intriguing question or thought experiment related to my major, introduce yourself, and ask how you can help me unpack the uploaded book/module.",
+  "Give a motivational, inspiring introduction. Remind me of the value of learning, introduce yourself as my lecturer, and ask if we should get started with the study materials.",
+  "Welcome me to a cozy, laid-back study session. Introduce yourself, invite me to relax and learn, and ask if I want an overview of the uploaded PDF/book.",
+  "Pretend this is a highly professional, academic symposium podcast. Open with a formal introduction of yourself, state our goal of mastering this course material, and ask what section we should analyze.",
+  "Start the podcast by sharing a quick, interesting fact or tip about effective studying, greet me, and ask how you can help guide me through our study files today.",
+  "Imagine we are doing a quick review session before a big exam. Start with a focused, encouraging check-in, introduce yourself, and ask which concepts from the study guide we should review first.",
+  "Open with a friendly, conversational 'office hours' vibe. Say hello, introduce yourself, and ask if there's a specific part of the uploaded book or module I'd like you to explain.",
+  "Start with a quick story-style hook: explain why the subject we are studying matters in the real world, introduce yourself as my lecturer, and ask if you should walk me through the study module.",
+  "Give a short, energetic 'bootcamp' style introduction. Encourage me to stay focused and 'lock in', introduce yourself, and ask if you should start explaining the module.",
+  "Pretend we are starting a late-night study podcast. Open with a calm, reassuring, low-key voice. Introduce yourself and ask if we should explore the uploaded study module.",
+  "Open the session by asking me to reflect on my study goals today. Introduce yourself, set a positive tone, and ask if you should start dissecting the uploaded PDF or book.",
+  "Start the podcast with a structured agenda. Introduce yourself, state that we will tackle the main ideas of the module together, and ask if you should give a summary of the first section.",
+  "Create a sense of curiosity: start by describing a mystery or common misconception in our field of study, introduce yourself, and ask if you should clarify it using the uploaded material.",
+  "Open like a modern educational YouTube video. Start with a catchy greeting, introduce yourself as my tutor, and ask if we should jump straight into the study guide.",
+  "Start the session with a quick breathing or focusing exercise to help me prepare for studying. Introduce yourself and ask if you should begin explaining the uploaded course book.",
+  "Pretend this is a collaborative masterclass. Open by emphasizing that we are a team, introduce yourself, and ask if you should break down the key takeaways from the study guide.",
+  "Start with a brief, high-level overview of why this major is so exciting. Introduce yourself as my academic guide, and ask if we should dive into the details of the uploaded module.",
+  "Open with a classic, warm, paternal/maternal professor greeting. Welcome me to today's tutorial, introduce yourself, and ask how we should approach the study module."
+];
+
 interface LiveSessionProps {
   profile: UserProfile;
   exehEnabled: boolean;
@@ -205,9 +228,17 @@ export default function LiveSession({ profile, exehEnabled, kopalaEnabled, langu
   // Handle proactive greeting for podcast mode after session is established
   useEffect(() => {
     if (isActive && sessionRef.current && mode === 'podcast') {
-      const languageText = language !== 'English' ? ` in the target language (${language})` : '';
+      const greetingIndex = parseInt(localStorage.getItem('podcast_greeting_index') || '0', 10);
+      const nextIndex = (greetingIndex + 1) % PODCAST_GREETINGS.length;
+      localStorage.setItem('podcast_greeting_index', nextIndex.toString());
+      
+      const greetingRequestText = PODCAST_GREETINGS[greetingIndex];
+      const languageInstructionText = language !== 'English' 
+        ? ` Please perform the entire greeting, introduction, and following explanation in the target language (${language}).` 
+        : '';
+      
       sessionRef.current.sendRealtimeInput({
-        text: `I want to start a study podcast session. Please introduce yourself as my lecturer${languageText} and ask${languageText} if I'd like you to explain the uploaded study module/book.`
+        text: `I want to start a study podcast session. ${greetingRequestText}${languageInstructionText}`
       });
     }
   }, [isActive, mode, language]);
