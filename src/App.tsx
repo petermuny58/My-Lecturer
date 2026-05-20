@@ -23,6 +23,12 @@ export default function App() {
   const [kopalaEnabled, setKopalaEnabled] = useState(false);
   const [chatBookContext, setChatBookContext] = useState<ChatBookContext | null>(null);
   const [isProfileOpen, setIsProfileOpen] = useState(false);
+  const [language, setLanguage] = useState(() => localStorage.getItem('userLanguage') || 'English');
+
+  const handleLanguageChange = (lang: string) => {
+    setLanguage(lang);
+    localStorage.setItem('userLanguage', lang);
+  };
 
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
@@ -190,6 +196,7 @@ export default function App() {
             profile={profile}
             exehEnabled={exehEnabled}
             kopalaEnabled={kopalaEnabled}
+            language={language}
             chatBookContext={chatBookContext}
             onClearBookContext={() => setChatBookContext(null)}
           />
@@ -220,6 +227,8 @@ export default function App() {
         onExehChange={(val) => { setExehEnabled(val); if(val) setKopalaEnabled(false); }}
         kopalaEnabled={kopalaEnabled}
         onKopalaChange={(val) => { setKopalaEnabled(val); if(val) setExehEnabled(false); }}
+        language={language}
+        onLanguageChange={handleLanguageChange}
         onSignOut={handleSignOut}
       />
 

@@ -13,11 +13,12 @@ interface ChatProps {
   profile: UserProfile;
   exehEnabled: boolean;
   kopalaEnabled: boolean;
+  language: string;
   chatBookContext: ChatBookContext | null;
   onClearBookContext: () => void;
 }
 
-export default function Chat({ profile, exehEnabled, kopalaEnabled, chatBookContext, onClearBookContext }: ChatProps) {
+export default function Chat({ profile, exehEnabled, kopalaEnabled, language, chatBookContext, onClearBookContext }: ChatProps) {
   const [messages, setMessages] = useState<Message[]>([]);
   const [inputText, setInputText] = useState('');
   const [pdfContent, setPdfContent] = useState<string | null>(null);
@@ -173,6 +174,7 @@ export default function Chat({ profile, exehEnabled, kopalaEnabled, chatBookCont
         history,
         exehEnabled,
         kopalaEnabled,
+        language,
         pdfContent || undefined,
         chatBookContext,
         currentAttachments.map(a => ({ mimeType: a.mimeType, data: a.data }))
@@ -454,6 +456,7 @@ export default function Chat({ profile, exehEnabled, kopalaEnabled, chatBookCont
             profile={profile}
             exehEnabled={exehEnabled}
             kopalaEnabled={kopalaEnabled}
+            language={language}
             pdfContent={pdfContent}
             bookContext={chatBookContext}
             onClose={() => setShowLiveSession(false)}

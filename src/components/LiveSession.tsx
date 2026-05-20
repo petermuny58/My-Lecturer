@@ -10,12 +10,13 @@ interface LiveSessionProps {
   profile: UserProfile;
   exehEnabled: boolean;
   kopalaEnabled: boolean;
+  language: string;
   pdfContent: string | null;
   bookContext?: ChatBookContext | null;
   onClose: () => void;
 }
 
-export default function LiveSession({ profile, exehEnabled, kopalaEnabled, pdfContent, bookContext, onClose }: LiveSessionProps) {
+export default function LiveSession({ profile, exehEnabled, kopalaEnabled, language, pdfContent, bookContext, onClose }: LiveSessionProps) {
   const [mode, setMode] = useState<'selection' | 'live' | 'podcast'>('selection');
   const [isActive, setIsActive] = useState(false);
   const [isMuted, setIsMuted] = useState(false);
@@ -52,7 +53,7 @@ export default function LiveSession({ profile, exehEnabled, kopalaEnabled, pdfCo
           speechConfig: {
             voiceConfig: { prebuiltVoiceConfig: { voiceName: "Zephyr" } },
           },
-          systemInstruction: AssistantConfig.getSystemInstruction(profile, exehEnabled, kopalaEnabled, pdfContent || undefined, bookContext ?? undefined),
+          systemInstruction: AssistantConfig.getSystemInstruction(profile, exehEnabled, kopalaEnabled, language, pdfContent || undefined, bookContext ?? undefined),
         },
         callbacks: {
           onopen: () => {
@@ -204,11 +205,12 @@ export default function LiveSession({ profile, exehEnabled, kopalaEnabled, pdfCo
   // Handle proactive greeting for podcast mode after session is established
   useEffect(() => {
     if (isActive && sessionRef.current && mode === 'podcast') {
+      const languageText = language !== 'English' ? ` in the target language (${language})` : '';
       sessionRef.current.sendRealtimeInput({
-        text: "I want to start a study podcast session. Please introduce yourself as my lecturer and ask if I'd like you to explain the uploaded study module/book."
+        text: `I want to start a study podcast session. Please introduce yourself as my lecturer${languageText} and ask${languageText} if I'd like you to explain the uploaded study module/book.`
       });
     }
-  }, [isActive, mode]);
+  }, [isActive, mode, language]);
 
   return (
     <motion.div

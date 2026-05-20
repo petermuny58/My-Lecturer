@@ -9,22 +9,19 @@ interface ProfileMenuProps {
   onExehChange: (on: boolean) => void;
   kopalaEnabled: boolean;
   onKopalaChange: (on: boolean) => void;
+  language: string;
+  onLanguageChange: (lang: string) => void;
   onSignOut: () => void;
 }
 
 const LANGUAGES = ['English', 'Chinyanja', 'Ichibemba', 'Lozi', 'Chitonga'];
 
-export default function ProfileMenu({ isOpen, onClose, exehEnabled, onExehChange, kopalaEnabled, onKopalaChange, onSignOut }: ProfileMenuProps) {
+export default function ProfileMenu({ isOpen, onClose, exehEnabled, onExehChange, kopalaEnabled, onKopalaChange, language, onLanguageChange, onSignOut }: ProfileMenuProps) {
   const [persona, setPersona] = useState(() => localStorage.getItem('userPersona') || '');
-  const [language, setLanguage] = useState(() => localStorage.getItem('userLanguage') || 'English');
 
   useEffect(() => {
     localStorage.setItem('userPersona', persona);
   }, [persona]);
-
-  useEffect(() => {
-    localStorage.setItem('userLanguage', language);
-  }, [language]);
 
   if (!isOpen) return null;
 
@@ -76,7 +73,7 @@ export default function ProfileMenu({ isOpen, onClose, exehEnabled, onExehChange
                 id="language-select"
                 className="profile-select"
                 value={language}
-                onChange={(e) => setLanguage(e.target.value)}
+                onChange={(e) => onLanguageChange(e.target.value)}
               >
                 {LANGUAGES.map((lang) => (
                   <option key={lang} value={lang}>{lang}</option>
